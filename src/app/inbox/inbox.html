@@ -1,0 +1,422 @@
+<div class="gmail-container">
+
+    <!-- header -->
+    <header class="top-header">
+
+        <!-- left panel -->
+        <div class="header-left">
+            <button mat-icon-button class="menu-btn" matTooltip="Main menu" (click)="toggleSideBar()">
+                <mat-icon>menu</mat-icon>
+            </button>
+
+            <div class="logo">
+                <h1 routerLink="/inbox" matTooltip="Smail">Smail</h1>
+            </div>
+        </div>
+
+        <!-- Search bar -->
+        <div class="search-wrapper">
+
+            <div class="search-container" matTooltip="Search">
+
+                <button mat-icon-button type="button">
+                    <mat-icon>search</mat-icon>
+                </button>
+
+                <input type="text" placeholder="Search email" [(ngModel)]="searchText" (input)="searchMails()">
+
+                @if(searchText) {
+                <button mat-icon-button type="button" matTooltip="Clear" (click)="clearSearch()">
+                    <mat-icon>close</mat-icon>
+                </button>
+                }
+
+                <button mat-icon-button type="button" matTooltip="Show search options">
+                    <mat-icon>tune</mat-icon>
+                </button>
+
+            </div>
+
+            <!-- Search results -->
+            @if(searchText && filteredMails.length > 0) {
+
+            <div class="search-results">
+
+                @for(mail of filteredMails; track mail.id) {
+
+                <div class="search-result" (click)="openSearchMail(mail)">
+
+                    <div class="result-icon">
+                        <mat-icon>mail</mat-icon>
+                    </div>
+
+                    <div class="result-content">
+
+                        <div class="result-top">
+                            <span class="result-email">
+                                {{ mail.from }}
+                            </span>
+
+                            <span class="result-date">
+                                {{ mail.date | date:'dd/MM/yyyy' }}
+                            </span>
+                        </div>
+
+                        <div class="result-subject">
+                            {{ mail.subject }}
+                        </div>
+
+                        <div class="result-body">
+                            {{ mail.body }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+                }
+
+            </div>
+
+            }
+
+        </div>
+
+        <!-- right panel -->
+        <div class="header-right">
+            <button mat-icon-button matTooltip="Support">
+                <mat-icon>help_outline</mat-icon>
+            </button>
+
+            <button mat-icon-button matTooltip="Settings">
+                <mat-icon>settings</mat-icon>
+            </button>
+
+            <button matButton="tonal" matTooltip="Upgrade for premium featured">
+                Upgrade
+            </button>
+
+            <button mat-icon-button matTooltip="Google apps">
+                <mat-icon>apps</mat-icon>
+            </button>
+
+            <button mat-icon-button class="profile-btn" matTooltip="User Profile" (click)="openProfileModal()">
+                <mat-icon>account_circle</mat-icon>
+            </button>
+
+            <button mat-icon-button class="logout-btn" matTooltip="Logout" (click)="logout()">
+                <mat-icon>logout</mat-icon>
+            </button>
+
+        </div>
+
+    </header>
+
+    <!-- Main page -->
+    <div class="main-container">
+
+        <!-- Side panel -->
+        @if(sidebarOpen){
+        <div class="sidebar">
+
+            <button mat-raised-button class="compose-btn" (click)="compose()" matTooltip="Compose">
+                <mat-icon>edit</mat-icon>
+                <span>Compose</span>
+            </button>
+
+            <!-- Navigation -->
+            <nav class="mail-navigation">
+
+                <div class="nav-item" (click)="selectTab('Primary')" matTooltip="Inbox">
+                    <mat-icon>inbox</mat-icon>
+                    <span>Inbox</span>
+                </div>
+
+                <div class="nav-item" (click)="selectTab('Starred')" matTooltip="Starred">
+                    <mat-icon>star_border</mat-icon>
+                    <span>Starred</span>
+                </div>
+
+                <div class="nav-item" (click)="selectTab('Sent')" matTooltip="Sent">
+                    <mat-icon>send</mat-icon>
+                    <span>Sent</span>
+                </div>
+
+                <div class="nav-item" (click)="selectTab('Drafts')" matTooltip="Drafts">
+                    <mat-icon>drafts</mat-icon>
+                    <span>Drafts</span>
+                </div>
+
+                <div class="nav-item" (click)="selectTab('Trash')" matTooltip="Trash">
+                    <mat-icon>delete_outline</mat-icon>
+                    <span>Trash</span>
+                </div>
+            </nav>
+
+            <!-- Labels -->
+            <div class="labels-section">
+
+                <div class="labels-header">
+                    <span>Labels</span>
+                    <button mat-icon-button>
+                        <mat-icon>add</mat-icon>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+        }
+
+        <!-- Email content -->
+        <main class="mail-content">
+            @if(!selectedMail){
+
+            <div class="mail-toolbar">
+
+                <!-- left section -->
+                <div class="toolbar-left">
+
+                    <div class="select-container">
+
+                        <!-- Checkbox -->
+                        <mat-checkbox [(ngModel)]="allSelected" matTooltip="Select">
+                        </mat-checkbox>
+
+                        <!-- Dropdown arrow -->
+                        <button mat-icon-button [matMenuTriggerFor]="selectMenu" matTooltip="Select options"
+                            class="select-dropdown-btn">
+                            <mat-icon>arrow_drop_down</mat-icon>
+                        </button>
+
+                    </div>
+
+                    <!-- Dropdown menu -->
+                    <mat-menu #selectMenu="matMenu">
+
+                        <button mat-menu-item (click)="selectAll()">
+                            <span>All</span>
+                        </button>
+
+                        <button mat-menu-item (click)="selectNone()">
+                            <span>None</span>
+                        </button>
+
+                        <button mat-menu-item (click)="selectRead()">
+                            <span>Read</span>
+                        </button>
+
+                        <button mat-menu-item (click)="selectUnread()">
+                            <span>Unread</span>
+                        </button>
+
+                        <button mat-menu-item (click)="selectStarred()">
+                            <span>Starred</span>
+                        </button>
+
+                        <button mat-menu-item (click)="selectUnstarred()">
+                            <span>Unstarred</span>
+                        </button>
+
+                    </mat-menu>
+
+                    <!-- <mat-checkbox></mat-checkbox> -->
+
+                    <button mat-icon-button matTooltip="Refresh" (click)="refresh()">
+                        <mat-icon>refresh</mat-icon>
+                    </button>
+
+                    <button mat-icon-button matTooltip="More">
+                        <mat-icon>more_vert</mat-icon>
+                    </button>
+                </div>
+
+                <!-- right section -->
+                <div class="toolbar-right">
+                    <span>1-50 of many</span>
+
+                    <button mat-icon-button>
+                        <mat-icon>chevron_left</mat-icon>
+                    </button>
+
+                    <button mat-icon-button>
+                        <mat-icon>chevron_right</mat-icon>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Tabs -->
+            <div class="mail-tabs">
+
+                <div class="mail-tab primary-tab" [class.selected]="selectedTab === 'Primary'"
+                    (click)="selectTab('Primary')"
+                    matTooltip="Person-to-person conversations and messages that don't appear in other tabs">
+                    <mat-icon>inbox</mat-icon><span>Primary</span>
+                </div>
+
+                <div class="mail-tab" [class.selected]="selectedTab === 'Promotions'" (click)="selectTab('Promotions')"
+                    matTooltip="Marketing, interests, social and political causes & other promotional emails">
+                    <mat-icon>local_offer</mat-icon><span>Promotions</span>
+                </div>
+
+                <div class="mail-tab" [class.selected]="selectedTab === 'Social'" (click)="selectTab('Social')"
+                    matTooltip="Messages from social networks, media-shaing sites, online dating services & other 
+                    networking sites">
+                    <mat-icon>people</mat-icon><span>Social</span>
+                </div>
+
+            </div>
+
+            <!-- Mail List -->
+            <div class="mail-list">
+
+                @for(mail of mails; track mail.id) {
+
+                <div class="mail-row" [class.unread]="!mail.read" (click)="openMail(mail)">
+
+                    <!-- Checkbox -->
+                    <div class="mail-checkbox" (click)="$event.stopPropagation()">
+                        <mat-checkbox></mat-checkbox>
+                    </div>
+
+                    <!-- Starred -->
+                    <button mat-icon-button class="star-button" (click)="$event.stopPropagation();toggleStar(mail)">
+                        <mat-icon [class.starred]="mail.starred">
+                            {{ mail.starred ? 'star' : 'star_border' }}
+                        </mat-icon>
+                    </button>
+
+                    <!-- Sender -->
+                    <div class="sender">
+                        {{ selectedTab === 'Sent' ? mail.to : mail.from }}
+                    </div>
+
+                    <!-- subject -->
+                    <div class="mail-subject">
+                        <span>{{ mail.subject }}</span>
+                        <span class="dash"> - </span>
+                        <span class="mail-preview">{{ mail.body }}</span>
+                    </div>
+
+                    <!-- Date -->
+                    <div class="mail-date">
+                        {{ mail.date | date:'dd/MM/yyyy, hh:mm a' }}
+                    </div>
+
+                    <!-- delete -->
+                    <button mat-icon-button class="delete-button" matTooltip="Delete"
+                        (click)="$event.stopPropagation(); moveToTrash(mail)">
+                        <mat-icon>delete_outline</mat-icon>
+                    </button>
+                </div>
+                }
+            </div>
+            }
+            @if (selectedMail) {
+            <div class="mail-detail-container">
+
+                <!-- Detail toolbar -->
+
+                <div class="mail-detail-toolbar">
+
+                    <div class="detail-toolbar-left">
+                        <button mat-icon-button matTooltip="Back to Inbox" (click)="closeMail()">
+                            <mat-icon>arrow_back</mat-icon>
+                        </button>
+                    </div>
+
+                    <div class="detail-toolbar-right">
+                        <button mat-icon-button matTooltip="Archive">
+                            <mat-icon>archive</mat-icon>
+                        </button>
+
+                        <button mat-icon-button matTooltip="Archive">
+                            <mat-icon>report</mat-icon>
+                        </button>
+
+                        <button mat-icon-button matTooltip="Mark as unread">
+                            <mat-icon><mat-icon>mark_as_unread</mat-icon></mat-icon>
+                        </button>
+
+                        <button mat-icon-button matTooltip="Delete" (click)="deleteOpenedMail()">
+                            <mat-icon>delete_outline</mat-icon>
+                        </button>
+
+                        <button mat-icon-button matTooltip="More">
+                            <mat-icon>more_vert</mat-icon>
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <!-- Subject -->
+                <div class="mail-detail-subject">
+                    <h2>{{ selectedMail.subject }}</h2>
+                </div>
+
+                <!-- Sender information -->
+                <div class="mail-detail-header">
+
+                    <div class="sender-information">
+
+                        <div class="sender-name">
+                            from: {{ selectedMail.from }}
+                        </div>
+
+                        <div class="recipient">
+                            to: {{ selectedMail.to }}
+                        </div>
+
+                    </div>
+
+                    <div class="detail-date">
+                        {{ selectedMail.date | date:'dd/MM/yyyy, hh:mm a' }}
+                    </div>
+
+                    <button mat-icon-button matTooltip="Starred" class="detail-star-button"
+                        (click)="toggleStar(selectedMail); $event.stopPropagation()">
+                        <mat-icon [class.starred]="selectedMail.starred">
+                            {{ selectedMail.starred ? 'star' : 'star_border' }}</mat-icon>
+                    </button>
+
+                    <button mat-icon-button matTooltip="Reply" 
+                    (click)="replyMail(selectedMail!); $event.stopPropagation()">
+                        <mat-icon>reply</mat-icon>
+                    </button>
+
+                    <button mat-icon-button matTooltip="More">
+                        <mat-icon> more_vert </mat-icon>
+                    </button>
+
+                </div>
+
+                <!-- Mail body -->
+                <div class="mail-body">
+                    <p>{{ selectedMail.body }} </p>
+                </div>
+
+                <!-- Reply / Forward -->
+                <div class="mail-actions">
+
+                    <button mat-stroked-button 
+                    (click)="replyMail(selectedMail!); $event.stopPropagation()">
+                        <mat-icon>reply </mat-icon>
+                        Reply
+                    </button>
+
+                    <button mat-stroked-button (click)="forwardMail()">
+                        <mat-icon>forward </mat-icon>
+                        Forward
+                    </button>
+
+                </div>
+
+            </div>
+
+            }
+        </main>
+
+    </div>
+
+</div>

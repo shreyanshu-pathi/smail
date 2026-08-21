@@ -1,0 +1,327 @@
+{
+  "users": [
+    {
+      "fname": "virat",
+      "lname": "kohli",
+      "email": "virat@smail.com",
+      "phone": "9874563210",
+      "dob": "1998-11-04T18:30:00.000Z",
+      "gender": "male",
+      "password": "Virat@123",
+      "id": "vWguYEACjvM"
+    },
+    {
+      "fname": "rohit",
+      "lname": "sharma",
+      "email": "rohit@smail.com",
+      "phone": "9632587410",
+      "dob": "1999-12-09T18:30:00.000Z",
+      "gender": "male",
+      "password": "Rohit@123",
+      "id": "FCA4_YZ6Bc8"
+    },
+    {
+      "fname": "Shreyanshu",
+      "lname": "Pathi",
+      "email": "shreya@smail.com",
+      "phone": "9015223356",
+      "dob": "2002-11-24T18:30:00.000Z",
+      "gender": "female",
+      "password": "Shreya@123",
+      "id": "djqofUtJvIQ"
+    },
+    {
+      "fname": "Rahul",
+      "lname": "KL",
+      "email": "rahul@smail.com",
+      "phone": "",
+      "dob": "1994-03-31T18:30:00.000Z",
+      "gender": "Male",
+      "password": "Rahul@123",
+      "id": "9W5x4becrNM"
+    },
+    {
+      "fname": "smriti",
+      "lname": "mandana",
+      "email": "smriti@smail.com",
+      "phone": "8966654545",
+      "dob": "2026-08-28T18:30:00.000Z",
+      "gender": "Female",
+      "password": "Smriti@123",
+      "id": "Lw5s93i1PyI"
+    },
+    {
+      "fname": "shreyas",
+      "lname": "iyer",
+      "email": "shreyas2026@smail.com",
+      "phone": "7896541203",
+      "dob": "2026-08-28T18:30:00.000Z",
+      "gender": "Male",
+      "password": "Shreyas@123",
+      "id": "STzqogfoWlI"
+    },
+    {
+      "fname": "hemanth",
+      "lname": "yata",
+      "email": "hemanth01@smail.com",
+      "phone": "7241600229",
+      "dob": "2026-08-23T18:30:00.000Z",
+      "gender": "Male",
+      "password": "Hemanth@123",
+      "id": "2-UkP61hIfE"
+    },
+    {
+      "fname": "neha",
+      "lname": "devarakonda",
+      "email": "neha.dev@smail.com",
+      "phone": "6487978988",
+      "dob": "2026-08-30T18:30:00.000Z",
+      "gender": "Female",
+      "password": "Neha@123",
+      "id": "VgOR7L--bM8"
+    },
+    {
+      "fname": "richa",
+      "lname": "christina",
+      "email": "richa@smail.com",
+      "phone": "7410255639",
+      "dob": "2026-08-25T18:30:00.000Z",
+      "gender": "Female",
+      "password": "Richa@123",
+      "id": "qBw8JIVdmsM"
+    },
+    {
+      "fname": "aditi",
+      "lname": "asd",
+      "email": "aditi@smail.com",
+      "phone": "7894587878",
+      "dob": "2026-08-24T18:30:00.000Z",
+      "gender": "Female",
+      "password": "Aditi@123",
+      "id": "4J4XywudUak"
+    }
+  ],
+  "mails": [
+    {
+      "from": "rohit@smail.com",
+      "to": "virat@smail.com",
+      "subject": "Meeting",
+      "body": "Hello, Rohit lets meet on 20th aug, 2026 for an official meeting held by BCCI.",
+      "date": "2026-08-19T07:06:28.656Z",
+      "read": true,
+      "starred": true,
+      "trash": false,
+      "id": "5PFvQVK_R7o"
+    },
+    {
+      "from": "virat@smail.com",
+      "to": "shreya@smail.com",
+      "subject": "Meeting",
+      "body": "Hello, Shreya lets meet on 20th aug, 2026 for an official meeting held by BCCI.",
+      "date": "2026-08-19T07:47:16.883Z",
+      "read": false,
+      "starred": true,
+      "trash": true,
+      "id": "QadEKsOpsM8"
+    },
+    {
+      "from": "virat@smail.com",
+      "to": "shreya@smail.com",
+      "subject": "Hiii",
+      "body": "qwerty",
+      "date": "2026-08-19T10:19:42.053Z",
+      "read": false,
+      "starred": false,
+      "trash": true,
+      "id": "Sf4SgPKW5KI"
+    },
+    {
+      "from": "virat@smail.com",
+      "to": "shreya@smail.com",
+      "subject": "qweeee",
+      "body": "qweryty",
+      "date": "2026-08-19T10:21:20.716Z",
+      "read": false,
+      "starred": true,
+      "trash": true,
+      "id": "Wr5RNlCwX4M"
+    },
+    {
+      "from": "virat@smail.com",
+      "to": "shreya@smail.com",
+      "subject": "qwert",
+      "body": "qwertyuiop",
+      "date": "2026-08-19T10:41:09.810Z",
+      "read": false,
+      "starred": false,
+      "trash": true,
+      "id": "TNcUZOKbDIo"
+    },
+    {
+      "from": "shreya@smail.com",
+      "to": "virat@smail.com",
+      "subject": "asffg",
+      "body": "asfgcjg",
+      "date": "2026-08-19T10:48:37.702Z",
+      "read": true,
+      "starred": false,
+      "trash": true,
+      "id": "S3_pNgqiDHQ"
+    },
+    {
+      "from": "shreya@smail.com",
+      "to": "rohit@smail.com",
+      "subject": "piuiyg",
+      "body": "tfrte4e54",
+      "date": "2026-08-19T12:19:15.753Z",
+      "read": false,
+      "starred": false,
+      "trash": false,
+      "id": "FHTvNLTt0OM"
+    },
+    {
+      "from": "smriti@smail.com",
+      "to": "virat@smail.com",
+      "subject": "Notice from BCCI",
+      "body": "Hello Virat, BCCI has informed that the auction for IPL will be starting in the 2nd week of sept, 2026. ",
+      "date": "2026-08-20T10:37:57.576Z",
+      "read": true,
+      "starred": false,
+      "trash": false,
+      "id": "PYiaNwYJaAQ"
+    },
+    {
+      "from": "smriti@smail.com",
+      "to": "rohit@smail.com",
+      "subject": "Notice from BCCI",
+      "body": "Hello all, BCCI has informed that the auction for IPL will be starting in the 2nd week of sept, 2026.",
+      "date": "2026-08-20T10:40:51.423Z",
+      "read": false,
+      "starred": false,
+      "trash": false,
+      "id": "MTUgfcMS7g0"
+    },
+    {
+      "from": "shreya@smail.com",
+      "to": "virat@smail.com",
+      "subject": "Update Regarding IPL 2027 Player Regulations and Schedule",
+      "body": "Dear Player,The Board of Control for Cricket in India (BCCI) has finalized key operational updates, schedule timelines, and player guidelines for the upcoming Indian Premier League (IPL) 2027 season.",
+      "date": "2026-08-21T06:15:58.934Z",
+      "read": false,
+      "starred": false,
+      "trash": false,
+      "id": "csOHZUaSaXY"
+    },
+    {
+      "from": "shreya@smail.com",
+      "to": "rohit@smail.com",
+      "subject": "Update Regarding IPL 2027 Player Regulations and Schedule",
+      "body": "Dear Player,The Board of Control for Cricket in India (BCCI) has finalized key operational updates, schedule timelines, and player guidelines for the upcoming Indian Premier League (IPL) 2027 season.",
+      "date": "2026-08-21T06:15:58.935Z",
+      "read": false,
+      "starred": false,
+      "trash": false,
+      "id": "AHmBP7npjTQ"
+    },
+    {
+      "from": "shreya@smail.com",
+      "to": "rahul@smail.com",
+      "subject": "Update Regarding IPL 2027 Player Regulations and Schedule",
+      "body": "Dear Player,The Board of Control for Cricket in India (BCCI) has finalized key operational updates, schedule timelines, and player guidelines for the upcoming Indian Premier League (IPL) 2027 season.",
+      "date": "2026-08-21T06:18:01.161Z",
+      "read": false,
+      "starred": false,
+      "trash": false,
+      "id": "hSv1lOBe5ak"
+    },
+    {
+      "from": "shreya@smail.com",
+      "to": "shreyas2026@smail.com",
+      "subject": "Update Regarding IPL 2027 Player Regulations and Schedule",
+      "body": "Dear Player,The Board of Control for Cricket in India (BCCI) has finalized key operational updates, schedule timelines, and player guidelines for the upcoming Indian Premier League (IPL) 2027 season.",
+      "date": "2026-08-21T06:18:01.162Z",
+      "read": false,
+      "starred": false,
+      "trash": false,
+      "id": "8v9K3BPSeqQ"
+    },
+    {
+      "from": "shreya@smail.com",
+      "to": "smriti@smail.com",
+      "subject": "Update Regarding IPL 2027 Player Regulations and Schedule",
+      "body": "Dear Player,The Board of Control for Cricket in India (BCCI) has finalized key operational updates, schedule timelines, and player guidelines for the upcoming Indian Premier League (IPL) 2027 season.",
+      "date": "2026-08-21T06:18:01.163Z",
+      "read": false,
+      "starred": false,
+      "trash": false,
+      "id": "5TnTmL2FSNg"
+    },
+    {
+      "from": "shreya@smail.com",
+      "to": "shreya@smail.com",
+      "subject": "qwqw",
+      "body": "wewewewe",
+      "date": "2026-08-21T07:46:18.749Z",
+      "read": false,
+      "starred": false,
+      "trash": true,
+      "id": "JxQceKlVqM8"
+    },
+    {
+      "from": "virat@smail.com",
+      "to": "smriti@smail.com",
+      "subject": "Notice form BCCI",
+      "body": "Hello smriti, \nThank you for informing me.",
+      "date": "2026-08-21T11:21:41.135Z",
+      "read": false,
+      "starred": false,
+      "trash": true,
+      "id": "FpM9xz-539U"
+    },
+    {
+      "from": "virat@smail.com",
+      "to": "smriti@smail.com",
+      "subject": "Notice from BCCI",
+      "body": "Hello Smriti, \nThank you for informing about the update.",
+      "date": "2026-08-21T11:29:47.770Z",
+      "read": true,
+      "starred": false,
+      "trash": false,
+      "id": "9rLUaKdW4TE"
+    },
+    {
+      "from": "smriti@smail.com",
+      "to": "shreya@smail.com",
+      "subject": "Notice from BCCI",
+      "body": "Please stay updated.",
+      "date": "2026-08-21T11:31:59.715Z",
+      "read": false,
+      "starred": false,
+      "trash": false,
+      "id": "HkX4_3XJzww"
+    },
+    {
+      "from": "smriti@smail.com",
+      "to": "aditi@smail.com",
+      "subject": "Notice from BCCI",
+      "body": "Please stay updated.",
+      "date": "2026-08-21T11:31:59.716Z",
+      "read": false,
+      "starred": false,
+      "trash": false,
+      "id": "tTKFZwfm_6M"
+    },
+    {
+      "from": "smriti@smail.com",
+      "to": "rohit@smail.com",
+      "subject": "Notice from BCCI",
+      "body": "Please stay updated.",
+      "date": "2026-08-21T11:31:59.716Z",
+      "read": false,
+      "starred": false,
+      "trash": false,
+      "id": "6_s9wf4g_q8"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}

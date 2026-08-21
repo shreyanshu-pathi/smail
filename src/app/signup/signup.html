@@ -1,0 +1,347 @@
+<div class="signup-container">
+
+    <div class="signup-card">
+
+        <!-- Logo -->
+        <div class="logo">
+            <h1>Smail</h1>
+            <span>Create your account</span>
+        </div>
+
+        <!-- Name -->
+        @if (signupStage === 'name') {
+
+        <div class="signup-content">
+
+            <h3> Enter your first and last name to get started.</h3>
+
+            <form [formGroup]="signupForm">
+
+                <!-- First Name -->
+                <mat-form-field appearance="outline" class="full-width">
+
+                    <mat-label>First Name</mat-label>
+                    <input matInput formControlName="fname" placeholder="Enter your first name">
+                    <mat-icon matSuffix>person</mat-icon>
+
+                    @if (signupForm.controls['fname'].hasError('required') && signupForm.controls['fname'].touched) {
+                    <mat-error> Please enter your first name </mat-error>
+                    }
+
+                    @if (signupForm.controls['fname'].hasError('minlength') && signupForm.controls['fname'].touched) {
+                    <mat-error> First name must contain at least 3 characters</mat-error>
+                    }
+                    @if (signupForm.controls['fname'].hasError('pattern') && signupForm.controls['fname'].touched) {
+                    <mat-error> Please enter a valid name</mat-error>
+                    }
+
+                </mat-form-field>
+
+                <!-- Last Name -->
+                <mat-form-field appearance="outline" class="full-width">
+
+                    <mat-label>Last Name</mat-label>
+                    <input matInput formControlName="lname" placeholder="Enter your last name">
+                    <mat-icon matSuffix>person_outline</mat-icon>
+                    @if (signupForm.controls['lname'].hasError('required') && signupForm.controls['lname'].touched) {
+                    <mat-error> Please enter your last name </mat-error>
+                    }
+                    @if (signupForm.controls['lname'].hasError('minlength') && signupForm.controls['lname'].touched) {
+                    <mat-error> Last name must contain at least 3 characters</mat-error>
+                    }
+                    @if (signupForm.controls['lname'].hasError('pattern') && signupForm.controls['lname'].touched) {
+                    <mat-error> Please enter a valid name </mat-error>
+                    }
+
+                </mat-form-field>
+
+                <!-- Login Link -->
+                <div class="login-link">
+                    <p>Already a member? <span routerLink="/login">Login</span></p>
+                </div>
+
+                <!-- Next button -->
+                <div class="button-container">
+                    <button matButton="filled" type="button" (click)="next()">
+                        Next
+                        <mat-icon>arrow_forward</mat-icon>
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+        }
+        <!-- Dob -->
+        @if (signupStage === 'dob') {
+
+        <div class="signup-content">
+
+            <h3>Tell us your date of birth.</h3>
+
+            <form [formGroup]="signupForm">
+
+                <mat-form-field appearance="outline" class="full-width">
+
+                    <mat-label>Date of birth</mat-label>
+                    <input matInput [matDatepicker]="picker" formControlName="dob"
+                        placeholder="Choose your date of birth">
+                    <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                    <mat-datepicker #picker></mat-datepicker>
+                    @if (signupForm.controls['dob'].hasError('required') && signupForm.controls['dob'].touched) {
+                    <mat-error> Please select your date of birth </mat-error>
+                    }
+
+                </mat-form-field>
+
+                <div class="button-container">
+
+                    <button mat-button type="button" (click)="back()" class="back-button">
+                        <mat-icon>arrow_back</mat-icon>
+                        Back
+                    </button>
+
+                    <button matButton="filled" type="button" (click)="next()">
+                        Next
+                        <mat-icon>arrow_forward</mat-icon>
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+        }
+
+        <!-- gender -->
+        @if (signupStage === 'gender') {
+
+        <div class="signup-content">
+
+            <h3>Select your gender</h3>
+
+            <form [formGroup]="signupForm">
+
+                <div class="gender-section">
+                    <label class="gender-title"> Gender </label><br>
+                    <mat-radio-group formControlName="gender">
+                        <mat-radio-button value="Male"> Male </mat-radio-button>
+                        <mat-radio-button value="Female"> Female </mat-radio-button>
+                        <mat-radio-button value="Other"> Other </mat-radio-button>
+                    </mat-radio-group>
+
+                    @if (signupForm.controls['gender'].hasError('required') && signupForm.controls['gender'].touched) {
+                    <mat-error> Please select your gender</mat-error>
+                    }
+
+                </div>
+
+                <div class="button-container">
+
+                    <button mat-button type="button" (click)="back()">
+                        <mat-icon>arrow_back</mat-icon>
+                        Back
+                    </button>
+
+                    <button matButton="filled" type="button" (click)="next()">
+                        Next
+                        <mat-icon>arrow_forward</mat-icon>
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+        }
+
+        <!-- Phone -->
+        @if (signupStage === 'phone') {
+
+        <div class="signup-content">
+
+            <h3>Add your phone number</h3>
+
+            <form [formGroup]="signupForm">
+
+                <mat-form-field appearance="outline" class="full-width">
+
+                    <mat-label>Phone number(Optional)</mat-label>
+
+                    <input matInput type="tel" maxlength="10" formControlName="phone"
+                        placeholder="Enter your phone number">
+                    <mat-icon matSuffix>phone</mat-icon>
+                    @if (signupForm.controls['phone'].hasError('pattern') && signupForm.controls['phone'].touched) {
+                    <mat-error> Please enter a valid 10-digit phone number</mat-error>
+                    }
+
+                </mat-form-field>
+
+                <div class="button-container">
+                    <button mat-button type="button" (click)="back()">
+                        <mat-icon>arrow_back</mat-icon>
+                        Back
+                    </button>
+
+                    <button matButton="filled" type="button" (click)="next()">
+                        Next
+                        <mat-icon>arrow_forward</mat-icon>
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
+        }
+
+        <!-- Email -->
+        @if (signupStage === 'email') {
+
+        <div class="signup-content">
+
+            <h3>Create your Smail address</h3>
+
+            <form [formGroup]="signupForm">
+
+                <mat-form-field appearance="outline" class="full-width">
+
+                    <mat-label>Email</mat-label>
+                    <input matInput type="email" formControlName="email" (input)="onEmailChange()" placeholder="yourname@smail.com">
+                    <mat-icon matSuffix>mail_outline</mat-icon>
+                    @if (signupForm.controls['email'].hasError('required') && signupForm.controls['email'].touched) {
+                    <mat-error> Email is required </mat-error>
+                    }
+                    @if (signupForm.controls['email'].hasError('pattern') && signupForm.controls['email'].touched) {
+                    <mat-error>Use only characters, numbers and spl. characters like ($*_-.)</mat-error>
+                    }
+
+                </mat-form-field>
+                @if (emailSuggestions.length > 0) {
+                <div class="email-suggestions">
+
+                    <div class="suggestions-title">
+                        <span>Suggestions for Smail addresses</span>
+                    </div>
+
+                    <div class="suggestions-list">
+                        @for (suggestion of emailSuggestions; track suggestion) {
+                        <button type="button" (click)="selectSuggestion(suggestion)" class="suggestion">
+                            <span>{{ suggestion }}</span>
+                        </button>
+                        }
+                    </div>
+                </div>
+                }
+
+                <div class="email-hint">
+                    <mat-icon>info_outline</mat-icon>
+                    <span>Your Smail address will be used to log in.</span>
+                </div>
+
+                <div class="button-container">
+                    <button mat-button type="button" (click)="back()">
+                        <mat-icon>arrow_back</mat-icon>
+                        Back
+                    </button>
+
+                    <button matButton="filled" type="button" (click)="next()">
+                        Next
+                        <mat-icon>arrow_forward</mat-icon>
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
+        }
+
+        <!-- Password -->
+        @if (signupStage === 'password') {
+
+        <div class="signup-content">
+
+            <h2>Secure your account</h2>
+
+            <form [formGroup]="signupForm">
+
+                <!-- Password -->
+                <mat-form-field appearance="outline" class="full-width">
+
+                    <mat-label>Password</mat-label>
+                    <input matInput [type]="hide() ? 'password' : 'text'" formControlName="password"
+                        placeholder="Create a password">
+                    <button mat-icon-button matSuffix type="button" (click)="hide.set(!hide())">
+                        <mat-icon>{{ hide() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                    </button>
+                    @if (signupForm.controls['password'].hasError('required') &&
+                    signupForm.controls['password'].touched) {
+                    <mat-error>Password is required</mat-error>
+                    }
+                    @if (signupForm.controls['password'].hasError('minlength') &&
+                    signupForm.controls['password'].touched) {
+                    <mat-error> Password must contain at least 8 characters </mat-error>
+                    }
+                    @if (signupForm.controls['password'].hasError('pattern') && signupForm.controls['password'].touched)
+                    {
+                    <mat-error> Use uppercase, lowercase, number and special character</mat-error>
+                    }
+
+                </mat-form-field>
+
+
+                <!-- Confirm Password -->
+                <mat-form-field appearance="outline" class="full-width">
+
+                    <mat-label>Confirm password</mat-label>
+
+                    <input matInput [type]="hideConfirmPassword() ? 'password' : 'text'"
+                        formControlName="confirmPassword" placeholder="Confirm your password">
+                    <button mat-icon-button matSuffix type="button"
+                        (click)="hideConfirmPassword.set(!hideConfirmPassword())">
+                        <mat-icon>{{ hideConfirmPassword() ? 'visibility_off': 'visibility' }} </mat-icon>
+                    </button>
+                    @if (signupForm.controls['confirmPassword'].hasError('required') &&
+                    signupForm.controls['confirmPassword'].touched) {
+                    <mat-error> Please confirm your password </mat-error>
+                    }
+                    @if (signupForm.hasError('passwordMismatch') && signupForm.controls['confirmPassword'].touched) {
+                    <mat-error> Passwords do not match </mat-error>
+                    }
+
+                </mat-form-field>
+
+                <div class="password-hint">
+                    <mat-icon>info_outline</mat-icon>
+                    <span>
+                        Use at least 8 characters with uppercase,
+                        lowercase, number and special character.
+                    </span>
+
+                </div>
+
+                <div class="button-container">
+                    <button mat-button type="button" (click)="back()">
+                        <mat-icon>arrow_back</mat-icon>
+                        Back
+                    </button>
+
+                    <button matButton="filled" type="button" (click)="submitForm()">
+                        Create account
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
+        }
+
+    </div>
+
+</div>

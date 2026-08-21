@@ -1,0 +1,87 @@
+<div class="compose-container">
+
+    <!-- Header -->
+    <div class="compose-header">
+        <span>New Message</span>
+
+        <button mat-icon-button type="button" matTooltip="Close" (click)="closeDialog()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="composeForm">
+
+        <!-- From -->
+        <mat-form-field appearance="outline" class="full-width">
+            <mat-label>From</mat-label>
+            <input matInput [value]="data.from" readonly>
+        </mat-form-field>
+
+        <!-- To -->
+        <mat-form-field appearance="outline" class="full-width">
+            <mat-label>To</mat-label>
+
+            <input matInput formControlName="to" placeholder="Recipients email">
+            @if(composeForm.controls['to'].hasError('required') && composeForm.controls['to'].touched){
+            <mat-error>Recipient email is required</mat-error>
+            }
+            @else if(composeForm.controls['to'].hasError('invalidEmail')&& composeForm.controls['to'].touched){
+            <mat-error>Invalid email address</mat-error>
+            }
+            @else if(composeForm.controls['to'].hasError('userNotFound')&& composeForm.controls['to'].touched){
+            <mat-error>User not found</mat-error>
+            }
+        </mat-form-field>
+
+        <!-- subject -->
+        <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Subject</mat-label>
+
+            <input matInput formControlName="subject" placeholder="Subject">
+            @if(composeForm.controls['subject'].hasError('required') && composeForm.controls['subject'].touched){
+            <mat-error>Subject is required</mat-error>
+            }
+        </mat-form-field>
+
+        <!-- Message -->
+        <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Message</mat-label>
+            <textarea matInput formControlName="body" rows="4" placeholder="Write your message..."></textarea>
+            @if (composeForm.controls['body'].hasError('required') && composeForm.controls['body'].touched) {
+            <mat-error>Message is required</mat-error>
+            }
+
+            <!-- Attachment -->
+            @if(attachmentName){
+            <div class="attachment">
+                <mat-icon>attach_file</mat-icon>
+                <span>{{attachmentName}}</span>
+
+                <button mat-icon-button type="button" matTooltip="Remove" (click)="removeAttachment()">
+                    <mat-icon>close</mat-icon>
+                </button>
+            </div>
+            }
+        </mat-form-field>
+
+        <!-- Footer -->
+        <div class="compose-footer">
+            <button matButton="filled" (click)="sendMail()">Send</button>
+
+            <div class="compose-footer-right">
+
+                <input #fileInput type="file" hidden (change)="onFileSelected($event)">
+                <button mat-icon-button type="button" matTooltip="Files" (click)="fileInput.click()">
+                    <mat-icon>attach_file</mat-icon>
+                </button>
+
+                <button mat-icon-button type="button" matTooltip="Discard" mat-dialog-close>
+                    <mat-icon>delete_outline</mat-icon>
+                </button>
+            </div>
+
+        </div>
+    </form>
+
+</div>

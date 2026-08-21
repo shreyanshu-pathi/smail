@@ -1,0 +1,92 @@
+<div class="login-container">
+
+    <div class="login-card">
+
+        <!-- Logo -->
+        <div class="logo">
+            <h1>Smail</h1>
+        </div>
+
+        <!--  email -->
+        @if (loginStage === 'email') {
+        <div class="login-content">
+
+            <h2>Login</h2>
+
+            <p class="subtitle">Use your Smail account</p>
+
+            <form [formGroup]="loginForm">
+
+                <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Email</mat-label>
+                    <input matInput type="email" formControlName="email" placeholder="Enter your email">
+
+                    @if (loginForm.controls['email'].hasError('required') && loginForm.controls['email'].touched) {
+                    <mat-error>Email is required</mat-error>
+                    }
+
+                </mat-form-field>
+
+                <div class="signin">
+                    <p>Not a member? <span class="account" routerLink="/signup">Create account</span></p>
+                </div>
+
+                <div class="button-container">
+                    <button matButton="filled" type="button" (click)="next()">Next </button>
+                </div>
+            </form>
+        </div>
+
+        }
+
+        <!-- password -->
+        @if (loginStage === 'password') {
+
+        <div class="login-content">
+
+            <h2>Welcome</h2>
+
+            <!-- Selected email -->
+            <div class="selected-email">
+                <button mat-icon-button type="button" (click)="backToEmail()">
+                    <mat-icon>arrow_back</mat-icon>
+                </button>
+                <span>{{ currentUser.email }}</span>
+            </div>
+
+            <p class="subtitle">Enter your password</p>
+
+            <form [formGroup]="loginForm">
+
+                <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Password</mat-label>
+                    <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password"
+                        placeholder="Enter your password">
+
+                    <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword">
+                        <mat-icon>{{ hidePassword? 'visibility_off' : 'visibility' }} </mat-icon>
+                    </button>
+
+                    @if (loginForm.controls['password'].hasError('required') && loginForm.controls['password'].touched) {
+                    <mat-error>Password is required</mat-error>
+                    }
+
+                </mat-form-field>
+
+                <div class="forgot-password" (click)="onForgotPassword()">
+                    <a>Forgot password?</a>
+                </div>
+
+                <div class="button-container">
+                    <button matButton="filled" type="button" (click)="login()"> Login </button>
+                </div>
+
+            </form>
+
+        </div>
+
+        }
+
+    </div>
+
+</div>

@@ -1,0 +1,17 @@
+h2 {
+    text-align: center;
+}
+
+mat-dialog-content {
+    // min-width: 400px;
+    // padding-top: 10px;
+margin: 0;
+    .full-width {
+        width: 80%;
+        // margin-bottom: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-left: 45px;
+    }
+}

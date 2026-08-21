@@ -1,0 +1,69 @@
+.compose-container {
+    width: 520px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+
+    .compose-header {
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px 0 24px;
+        background: #f2f6fc;
+        font-size: 16px;
+        font-weight: 500;
+        color: #202124;
+    }
+
+    form {
+        padding: 16px;
+    }
+
+    .full-width {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    textarea {
+        resize: none;
+    }
+
+    .compose-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 10px;
+
+
+        .compose-footer-right {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+    }
+
+    .attachment {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        padding: 6px 10px;
+        margin-bottom: 10px;
+        border: 1px solid #dadce0;
+        border-radius: 6px;
+        background: #f8fafd;
+        font-size: 13px;
+    }
+
+    .attachment mat-icon {
+        font-size: 20px;
+    }
+
+    .attachment span {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
