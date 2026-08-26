@@ -10,7 +10,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { User } from '../model';
 import { MailService } from '../mail-service';
-import { required } from '@angular/forms/signals';
 
 @Component({
   selector: 'app-signup',
@@ -276,6 +275,22 @@ export class Signup {
   // submit form
   submitForm(): void {
 
+    const password = this.signupForm.controls['password'];
+    const confirmPassword = this.signupForm.controls['confirmPassword'];
+
+    // Validate password fields first
+    if (password.invalid || confirmPassword.invalid) {
+      password.markAsTouched();
+      confirmPassword.markAsTouched();
+      return;
+    }
+
+    // Check password mismatch
+    if (this.signupForm.hasError('passwordMismatch')) {
+      confirmPassword.markAsTouched();
+      return;
+    }
+
     const formValue = this.signupForm.value;
 
     const user: User = {
@@ -288,35 +303,69 @@ export class Signup {
       password: formValue.password
     };
 
-    // check if email exists
+    // Check if email already exists
     this.mailService.getUserByEmail(user.email).subscribe({
+
       next: (users) => {
+
         if (users.length > 0) {
-          this.snackBar.open('Email already registered', 'Close', {
-            duration: 3000
-          });
+
+          this.snackBar.open('Email already registered', 'Close',
+            {
+              duration: 3000
+            }
+          );
           return;
         }
 
+        // Create account only after all validation passes
         this.mailService.addUser(user).subscribe({
+
           next: () => {
-            this.snackBar.open('Registeration successfull', 'Close', {
-              duration: 3000
-            });
+
+            this.snackBar.open(
+              'Registration successful',
+              'Close',
+              {
+                duration: 3000
+              }
+            );
+
             this.mailService.setCurrentUser(user);
-            
+
             this.router.navigate(['/inbox']);
           },
 
           error: (error) => {
-            console.error('Error creating user');
+
+            console.error('Error creating user', error);
+
+            this.snackBar.open(
+              'Unable to create account',
+              'Close',
+              {
+                duration: 3000
+              }
+            );
           }
+
         });
+
       },
 
       error: (error) => {
-        console.error('Error checking email');
+
+        console.error('Error checking email', error);
+
+        this.snackBar.open(
+          'Unable to check email availability',
+          'Close',
+          {
+            duration: 3000
+          }
+        );
       }
+
     });
   }
 }

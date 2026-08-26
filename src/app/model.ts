@@ -7,6 +7,12 @@ export interface User {
     gender: string;
     password: string;
     phone?: string;
+
+    // email change
+    emailChangeCount?: number;
+    emailChangeYear?: number;
+    emailChangeStartedAt?: string | null;
+    emailChangeExpiresAt?: string | null;
 }
 
 export interface Mail {
@@ -18,5 +24,19 @@ export interface Mail {
     date: string;
     read: boolean;
     starred: boolean;
+    draft?: boolean;
+    spam?: boolean;
+    archived?: boolean;
     trash: boolean;
+    threadId?: string;
+    replyToId?: number;
+    attachment?: {
+        name: string;
+        type: string;
+        data: string;
+    };
+
+    promotion?: boolean;
+    social?: boolean;
+    updates?: boolean;
 }

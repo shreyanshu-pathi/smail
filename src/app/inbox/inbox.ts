@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { ComposeDialog } from '../compose-dialog/compose-dialog';
 import { MailService } from '../mail-service';
-import { Mail } from '../model';
+import { Mail, User } from '../model';
 import { DatePipe } from '@angular/common';
 import { UserProfileDialog } from '../user-profile-dialog/user-profile-dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -45,8 +45,14 @@ export class Inbox {
   // Selected mail
   selectedMail: Mail | null = null;
 
+  // Action mail for promotions
+  selectedActionMail: Mail | null = null;
+
+  draftCount = 0;
+
   ngOnInit(): void {
     this.loadInboxMails();
+    this.loadDraftCount();
   }
 
   // Inbox mails
@@ -90,10 +96,17 @@ export class Inbox {
     });
 
     dialogRef.afterClosed().subscribe(result => {
+      if (result?.draftSaved) {
+        setTimeout(() => {
+          this.loadDraftCount();
+          // this.selectTab('Drafts');
+        });
+        return;
+      }
       if (result) {
         return;
       }
-      this.sendMultipleUsers(email);
+      // this.sendMultipleUsers(email);
     })
   }
 
@@ -128,7 +141,13 @@ export class Inbox {
         date: new Date().toISOString(),
         read: false,
         starred: false,
-        trash: false
+        trash: false,
+        draft: false,
+        spam: false,
+        archived: false,
+        promotion: false,
+        // social: false,
+        // updates: false
       };
 
       this.mailService.sendMail(mail).subscribe({
@@ -160,6 +179,12 @@ export class Inbox {
 
   // open mail
   openMail(mail: any): void {
+
+    // reopen compose for the drafts
+    if (mail.draft === true) {
+      this.openDraft(mail);
+      return;
+    }
 
     this.selectedMail = mail;
 
@@ -208,7 +233,7 @@ export class Inbox {
         console.error('Error updating star:', error);
         mail.starred = !mail.starred;
       }
-    })
+    });
   }
 
   // dropdown menu
@@ -293,6 +318,97 @@ export class Inbox {
       });
     }
 
+    // promotions
+    else if (tab === 'Promotions') {
+      this.mailService.getPromotionalMails(currentUser.email).subscribe({
+        next: (mails) => {
+          this.addMailsToBeginning(mails);
+        },
+        error: (error) => {
+          console.error('Error loading promotional mails', error);
+        }
+      });
+    }
+
+    // social
+    else if (tab === 'Social') {
+      this.mailService.getSocialMails(currentUser.email).subscribe({
+        next: (mails) => {
+          this.addMailsToBeginning(mails);
+        },
+        error: (error) => {
+          console.error('Error loading social mails', error);
+        }
+      });
+    }
+
+    // update
+    else if (tab === 'Updates') {
+      this.mailService.getUpdateMails(currentUser.email).subscribe({
+        next: (mails) => {
+          this.addMailsToBeginning(mails);
+        },
+        error: (error) => {
+          console.error('Error loading update mails', error)
+        }
+      });
+    }
+
+    // draft
+    else if (tab === 'Drafts') {
+      this.mailService.getDrafts(currentUser.email).subscribe({
+        next: (mails) => {
+          this.addMailsToBeginning(mails);
+        },
+        error: (error) => {
+          console.error('Error loading drafts:', error);
+        }
+      })
+    }
+
+    // All mails
+    else if (tab === 'All Mails') {
+      this.mailService.getMails().subscribe({
+        next: (mails) => {
+          const allMails = mails.filter(mail =>
+            mail.trash === false &&
+            mail.spam !== true && (
+              mail.from === currentUser.email ||
+              mail.to === currentUser.email
+            )
+          );
+          this.addMailsToBeginning(allMails);
+        },
+        error: (error) => {
+          console.error('Error loading all mails:', error);
+        }
+      });
+    }
+
+    // spam
+    else if (tab === 'Spam') {
+      this.mailService.getSpamMails(currentUser.email).subscribe({
+        next: (mails) => {
+          this.addMailsToBeginning(mails);
+        },
+        error: (error) => {
+          console.error('Error load spam mails', error);
+        }
+      });
+    }
+
+    // archived mails
+    else if (tab === 'Archive') {
+      this.mailService.getArchivedMails(currentUser.email).subscribe({
+        next: (mails) => {
+          this.addMailsToBeginning(mails);
+        },
+        error: (error) => {
+          console.error('Error loading archived mails:', error);
+        }
+      });
+    }
+
     // trash
     else if (tab === 'Trash') {
       this.mailService.getTrashMails(currentUser.email).subscribe({
@@ -367,6 +483,71 @@ export class Inbox {
     }
   }
 
+  // move to archive 
+  archiveMail(mail: Mail): void {
+    this.mailService.archiveMail(mail).subscribe({
+      next: () => {
+        this.mails = this.mails.filter(m => m.id !== mail.id);
+        this.snackBar.open('Conversation archived', 'Close', { duration: 3000 });
+      },
+      error: (error) => {
+        console.error('Error archiving mail:', error);
+        this.snackBar.open('Unable to archive mail', 'Close', { duration: 3000 })
+      }
+    });
+  }
+
+  // unarchive mail which moves o inbox
+  unarchiveMail(mail: Mail): void {
+    this.mailService.unarchiveMail(mail).subscribe({
+      next: () => {
+        this.mails = this.mails.filter(m => m.id !== mail.id);
+        this.snackBar.open('Mail moved to inbox', 'Close', { duration: 3000 });
+      },
+      error: (error) => {
+        console.error('Error unarchiving mails', error);
+        this.snackBar.open('Unable to move mail to inbox', 'Close', { duration: 3000 });
+      }
+    });
+  }
+
+  // Mark a mail as spam
+  markAsSpam(mail: Mail): void {
+    this.mailService.markAsSpam(mail).subscribe({
+      next: (updatedMail) => {
+        // removes immediately from curretn tab
+        this.mails = this.mails.filter(m => m.id !== mail.id);
+        this.snackBar.open('Mail moved to spam', 'Close', {
+          duration: 3000
+        });
+      },
+      error: (error) => {
+        console.error('Error moving mail to Spam:', error);
+        this.snackBar.open('Unable to move mail to spam', 'Close', {
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  // remove spam from inbox
+  removeSpam(mail: Mail): void {
+    this.mailService.removeFromSpam(mail).subscribe({
+      next: () => {
+        this.mails = this.mails.filter(m => m.id !== mail.id);
+        this.snackBar.open('Mail moved to inbox', 'Close', {
+          duration: 3000
+        });
+      },
+      error: (error) => {
+        console.error('Error moving mail to spam', error);
+        this.snackBar.open('Unable to move mail to Inbox', 'Close', {
+          duration: 3000
+        });
+      }
+    });
+  }
+
   // Move mails to trash
   moveToTrash(mail: Mail): void {
     this.mailService.moveToTrash(mail).subscribe({
@@ -381,6 +562,16 @@ export class Inbox {
         console.error('Error moving mail to trash:', error);
       }
     });
+  }
+
+  // Report problem
+  reportPromotion(): void {
+
+  }
+
+  // Block sender
+  blockSender(): void {
+
   }
 
   // Reply mail
@@ -421,13 +612,13 @@ export class Inbox {
 
   // Forward mail
   forwardMail(): void {
-    if(!this.selectedMail){
+    if (!this.selectedMail) {
       return;
     }
 
     const currentUser = this.mailService.getCurrentUser();
 
-    if(!currentUser){
+    if (!currentUser) {
       return;
     }
 
@@ -443,29 +634,29 @@ export class Inbox {
 
     const dialogRef = this.dialog.open(ComposeDialog, {
       width: '550px',
-    maxWidth: '95vw',
-    position: {
-      bottom: '0',
-      right: '40px'
-    },
-    panelClass: 'compose-dialog-panel',
+      maxWidth: '95vw',
+      position: {
+        bottom: '0',
+        right: '40px'
+      },
+      panelClass: 'compose-dialog-panel',
 
-    data: {
-      from: currentUser.email,
+      data: {
+        from: currentUser.email,
 
-      // Forward has no predefined recipient
-      to: '',
+        // Forward has no predefined recipient
+        to: '',
 
-      subject: this.selectedMail.subject.startsWith('Fwd:')
-        ? this.selectedMail.subject
-        : `Fwd: ${this.selectedMail.subject}`,
+        subject: this.selectedMail.subject.startsWith('Fwd:')
+          ? this.selectedMail.subject
+          : `Fwd: ${this.selectedMail.subject}`,
 
-      body: forwardedBody
-    }
+        body: forwardedBody
+      }
     });
 
-    dialogRef.afterClosed().subscribe(result =>{
-      if(result){
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
         this.refresh();
       }
     })
@@ -502,9 +693,13 @@ export class Inbox {
       id: currentUser.id,
       name: `${currentUser.fname} ${currentUser.lname}`,
       dob: currentUser.dob,
-      gender: currentUser?.gender,
-      phone: currentUser?.phone,
-      email: currentUser.email
+      gender: currentUser.gender,
+      phone: currentUser.phone,
+      email: currentUser.email,
+      emailChangeCount: currentUser.emailChangeCount ?? 0,
+      emailChangeYear: currentUser.emailChangeYear ?? new Date().getFullYear(),
+      emailChangeStartedAt: currentUser.emailChangeStartedAt ?? null,
+      emailChangeExpiresAt: currentUser.emailChangeExpiresAt ?? null
     };
 
     const dialogRef = this.dialog.open(UserProfileDialog, {
@@ -515,12 +710,9 @@ export class Inbox {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (!result) return;
-
-      this.userProfile = result;
-
-      // updating current user phone
-      currentUser.phone = result.phone;
+      if (!result) {
+        return
+      };
 
       if (currentUser.id === undefined) {
         this.snackBar.open('Unable to update profile', 'Close', {
@@ -529,16 +721,35 @@ export class Inbox {
         return;
       }
 
+      const updatedData: Partial<User> = {
+        fname: result.name.split(' ')[0] || currentUser.fname,
+        lname: result.name.split(' ').slice(1).join(' ') || currentUser.lname,
+        dob: result.dob,
+        gender: result.gender,
+        phone: result.phone,
+        email: result.email,
+        emailChangeCount: result.emailChangeCount,
+        emailChangeYear: result.emailChangeYear,
+        emailChangeStartedAt: result.emailChangeStartedAt,
+        emailChangeExpiresAt: result.emailChangeExpiresAt
+      };
+
       // update phone in db.json
-      this.mailService.updateUser(currentUser.id, {
-        phone: result.phone
-      }).subscribe({
+      this.mailService.updateUser(currentUser.id, updatedData).subscribe({
         next: (updatedUser) => {
           this.mailService.currentUser = updatedUser;
 
           // saving updated user
           localStorage.setItem('smailCurrentUser', JSON.stringify(updatedUser));
 
+          // Update profile object
+          this.userProfile = {
+            name: `${updatedUser.fname} ${updatedUser.lname}`,
+            dob: updatedUser.dob,
+            gender: updatedUser.gender,
+            phone: updatedUser.phone || '',
+            email: updatedUser.email
+          };
           this.snackBar.open('Profile updated successfully', 'Close', {
             duration: 3000
           });
@@ -550,6 +761,65 @@ export class Inbox {
         }
       })
     });
+  }
+
+  // open draft
+  openDraft(draft: Mail): void {
+    const currentUser = this.mailService.getCurrentUser();
+
+    if (!currentUser) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open(ComposeDialog, {
+      width: '550px',
+      maxWidth: '95vw',
+
+      position: {
+        bottom: '20px',
+        right: '40px'
+      },
+
+      panelClass: 'compose-dialog-panel',
+
+      data: {
+        mode: 'draft',
+        id: draft.id,
+        from: currentUser.email,
+        to: draft.to || '',
+        subject: draft.subject || '',
+        body: draft.body || '',
+        threadId: draft.threadId,
+        replyToId: draft.replyToId
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (!result?.draftSaved) {
+        setTimeout(() => {
+          this.loadDraftCount(); this.refresh();
+        }, 0);
+      }
+    });
+  }
+
+  // Load draft count
+  loadDraftCount() {
+    const currentUser = this.mailService.getCurrentUser();
+    if (!currentUser) {
+      this.draftCount = 0
+      return;
+    }
+
+    this.mailService.getDrafts(currentUser.email).subscribe({
+      next: (drafts) => {
+        this.draftCount = drafts.length;
+      },
+      error: (error) => {
+        console.error('Error loading draft count:', error);
+        this.draftCount = 0;
+      }
+    })
   }
 
   // logout

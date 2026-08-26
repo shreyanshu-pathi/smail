@@ -4,28 +4,56 @@
 
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Name</mat-label>
-        <input matInput [(ngModel)]="data.name" readonly>
+        <input matInput [(ngModel)]="data.name">
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Date of Birth</mat-label>
-        <input matInput [value]="data.dob | date:'dd/MM/yyyy'" readonly>
+        <input matInput [value]="data.dob | date:'dd/MM/yyyy'">
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Gender</mat-label>
-        <input matInput [(ngModel)]="data.gender" readonly>
+        <input matInput [(ngModel)]="data.gender">
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Phone</mat-label>
-        <input matInput type="tel" maxlength="10" [(ngModel)]="data.phone" readonly>
+        <input matInput type="tel" maxlength="10" [(ngModel)]="data.phone">
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Email</mat-label>
-        <input matInput [(ngModel)]="data.email" readonly>
+        <input matInput [(ngModel)]="data.email" [disabled]="!emailEditing">
+
+        @if(emailEditing){
+        <mat-hint>You have 1 hour to edit your existing email to a new email</mat-hint>
+        }
     </mat-form-field>
+
+    <!-- change of email -->
+    @if(!emailEditing){
+    <div class="email-change-info">
+        <p>
+            Email changes used: <strong>{{emailChangeCount}}/2</strong>this year
+        </p>
+
+        @if(emailChangeCount < 2){ <button mat-stroked-button type="button" (click)="startEmailChange()">
+            Change email
+            </button>
+            } @else {
+            <p class="limit-message">
+                You have reached your email change limit for this year.
+            </p>
+            }
+    </div>
+    }@else {
+    <div class="email-timer">
+        <strong>Time remaining: {{ timeRemaining }}</strong>
+        <p>You must save the new email before the 1 hour expires</p>
+    </div>
+    }
+
 
     <mat-dialog-actions align="end">
         <button mat-stroked-button (click)="close()">Cancel</button>

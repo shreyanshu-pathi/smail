@@ -31,12 +31,26 @@ export class ComposeDialog {
   selectedFile: File | null = null;
   attachmentName = '';
 
+  // draft
+  isDraft: boolean = false;
+
   constructor() {
     this.composeForm = this.fb.group({
       to: ['', Validators.required],
       subject: ['', Validators.required],
       body: ['', Validators.required]
     });
+
+    // existing draft
+    if (this.data?.mode === 'draft') {
+      this.isDraft = true;
+
+      this.composeForm.patchValue({
+        to: this.data.to || '',
+        subject: this.data.subject || '',
+        body: this.data.body || ''
+      });
+    }
 
     // If this is a reply
     if (this.data?.mode === 'reply') {
@@ -110,8 +124,21 @@ export class ComposeDialog {
             date: new Date().toISOString(),
             read: false,
             starred: false,
-            trash: false
+            trash: false,
+            draft: false
           };
+
+          // remove the exisiting draft ater sending
+          if (this.isDraft && this.data?.id) {
+            this.mailService.deleteDraft(this.data.id).subscribe({
+              next: () => {
+                console.log('Draft removed')
+              },
+              error: (error) => {
+                console.error('error deleting draft', error)
+              }
+            });
+          }
 
           this.mailService.sendMail(mail).subscribe({
             next: () => {
@@ -128,7 +155,6 @@ export class ComposeDialog {
               });
             }
           });
-
         });
       }
     });
@@ -152,7 +178,52 @@ export class ComposeDialog {
 
   // close the compose dialog
   closeDialog(): void {
-    this.dialogRef.close();
+    this.saveDraft();
+  }
+
+  saveDraft(): void {
+    const formValue = this.composeForm.value;
+
+    const currentUser = this.mailService.getCurrentUser();
+    if (!currentUser) {
+      return;
+    }
+
+    // if (!formValue.to && !formValue.subject && !formValue.body) {
+    //   this.dialogRef.close();
+    //   return;
+    // }
+
+    const draft: Mail = {
+      id: this.data?.id,
+      from: currentUser.email,
+      to: formValue.to?.trim() || '',
+      subject: formValue.subject?.trim() || '',
+      body: formValue.body || '',
+      date: new Date().toISOString(),
+      read: false,
+      starred: false,
+      trash: false,
+      draft: true,
+      threadId: this.data?.threadId,
+      replyToId: this.data?.replyToId
+    };
+
+    const request = this.isDraft && draft.id
+      ? this.mailService.updateExistingDraft(draft) : this.mailService.saveDraft(draft);
+
+    request.subscribe({
+      next: () => {
+        this.snackBar.open('Draft saved', 'Close', { duration: 3000 });
+        this.dialogRef.close({
+          draftSaved: true
+        })
+      },
+      error: (error) => {
+        console.error('Error saving draft', error);
+        this.snackBar.open('Unable to save draft', 'Close', { duration: 3000 })
+      }
+    })
   }
 
   // checks if email pattern is valid 

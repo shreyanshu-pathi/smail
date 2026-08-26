@@ -26,10 +26,10 @@
             @if(composeForm.controls['to'].hasError('required') && composeForm.controls['to'].touched){
             <mat-error>Recipient email is required</mat-error>
             }
-            @else if(composeForm.controls['to'].hasError('invalidEmail')&& composeForm.controls['to'].touched){
+            @if(composeForm.controls['to'].hasError('invalidEmail')&& composeForm.controls['to'].touched){
             <mat-error>Invalid email address</mat-error>
             }
-            @else if(composeForm.controls['to'].hasError('userNotFound')&& composeForm.controls['to'].touched){
+            @if(composeForm.controls['to'].hasError('userNotFound')&& composeForm.controls['to'].touched){
             <mat-error>User not found</mat-error>
             }
         </mat-form-field>
