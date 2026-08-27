@@ -11,16 +11,20 @@ import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { ComposeDialog } from '../compose-dialog/compose-dialog';
 import { MailService } from '../mail-service';
-import { Mail, User } from '../model';
+import { Mail } from '../model';
 import { DatePipe } from '@angular/common';
 import { UserProfileDialog } from '../user-profile-dialog/user-profile-dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { email } from '@angular/forms/signals';
+
+import { MatDividerModule } from '@angular/material/divider';
+import { SnoozeDialog } from '../snooze-dialog/snooze-dialog';
+import { I } from '@angular/cdk/keycodes';
 
 @Component({
   selector: 'app-inbox',
   imports: [MatButtonModule, MatTooltipModule, MatIconModule, RouterLink, MatFormFieldModule,
-    MatCheckboxModule, MatPaginatorModule, MatMenuModule, FormsModule, DatePipe, MatSnackBarModule],
+    MatCheckboxModule, MatPaginatorModule, MatMenuModule, FormsModule, DatePipe, MatSnackBarModule,
+    MatDividerModule, MatPaginatorModule],
   templateUrl: './inbox.html',
   styleUrl: './inbox.scss',
 })
@@ -48,6 +52,9 @@ export class Inbox {
   // Action mail for promotions
   selectedActionMail: Mail | null = null;
 
+  // conversation mails
+  conversation: Mail[] = []
+
   draftCount = 0;
 
   ngOnInit(): void {
@@ -65,6 +72,14 @@ export class Inbox {
 
     this.mailService.getInboxMails(currentUser.email).subscribe({
       next: (mails) => {
+        const now = new Date();
+
+        const expiredSnoozedMails = mails.filter(mail =>
+          mail.snoozed === true &&
+          mail.snoozedUntil &&
+          new Date(mail.snoozedUntil) <= now &&
+          mail.trash === false
+        )
         this.addMailsToBeginning(mails);
       },
       error: (error) => {
@@ -190,19 +205,37 @@ export class Inbox {
 
     if (!mail.read) {
       mail.read = true;
+
       this.mailService.updateReadStatus(mail).subscribe({
-        next: (updatedMail) => { },
-        error: (error) => {
+        next: () => { },
+        error: () => {
           mail.read = false;
         }
       });
     }
     // console.log('Opening mail:', mail);
+    // load complete conversation
+    if (mail.threadId) {
+      this.mailService.getConversation(mail.threadId).subscribe({
+        next: (messages) => {
+          this.conversation = messages;
+        },
+        error: (error) => {
+          console.error('Error loading conversatioons', error);
+
+          this.conversation = [mail];
+        }
+      });
+    } else {
+      // old mails without threadId
+      this.conversation = [mail]
+    }
   }
 
   // close mail
   closeMail(): void {
-    this.selectedMail = null
+    this.selectedMail = null;
+    this.conversation = [];
   }
 
   // Delete opened mail
@@ -239,30 +272,58 @@ export class Inbox {
   // dropdown menu
   allSelected = false;
 
+  // left panel check box which is selects and deselects all mails
+  toggleSelectAll(checked: boolean): void {
+    this.allSelected = checked;
+    this.mails.forEach(mail => { mail.selected = checked });
+  }
+
+  // Select all mails
   selectAll(): void {
+    this.mails.forEach(mail => { mail.selected = true });
     this.allSelected = true;
   }
 
+  // selects no mails
   selectNone(): void {
+    this.mails.forEach(mail => { mail.selected = false });
     this.allSelected = false;
   }
 
+  // select only read mails
   selectRead(): void {
-    console.log('Selected: Read')
+    this.mails.forEach(mail => { mail.selected = mail.read === true });
+    this.updateSelectAllState();
   }
 
+  // select only unread mails
   selectUnread(): void {
-    console.log('Selected: Unread')
+    this.mails.forEach(mail => { mail.selected = mail.read === false });
+    this.updateSelectAllState();
   }
 
+  //  select only starred mails
   selectStarred(): void {
-    console.log('Selected: Starred')
+    this.mails.forEach(mail => { mail.selected = mail.starred === true });
+    this.updateSelectAllState();
   }
 
+  //  select only unstarred mails
   selectUnstarred(): void {
-    console.log('Selected: Unstarred')
+    this.mails.forEach(mail => { mail.selected = mail.starred === false });
+    this.updateSelectAllState();
   }
 
+  // each mail box is updated upon individual selection
+  updateSelectAllState(): void {
+    if (this.mails.length === 0) {
+      this.allSelected = false;
+      return;
+    }
+    this.allSelected = this.mails.every(mail => { mail.selected === true });
+  }
+
+  // selects tab
   selectTab(tab: string): void {
 
     // close the current opened mail
@@ -306,6 +367,28 @@ export class Inbox {
         }
       });
     }
+
+    // snozzed
+    else if (tab === 'Snoozed') {
+      this.mailService.getSnoozedMails(currentUser.email).subscribe({
+        next: (mails) => {
+
+          const now = new Date();
+
+          const activeSnoozedMails = mails.filter(mail => {
+            if (!mail.snoozedUntil) {
+              return true;
+            }
+            return new Date(mail.snoozedUntil) > now;
+          });
+          this.addMailsToBeginning(activeSnoozedMails);
+        },
+        error: (error) => {
+          console.error('Error loading snoozed mails', error);
+        }
+      });
+    }
+
     // sent
     else if (tab === 'Sent') {
       this.mailService.getSentMails(currentUser.email).subscribe({
@@ -483,6 +566,163 @@ export class Inbox {
     }
   }
 
+  // snoozeMail
+  snoozeMail(mail: Mail, snoozedUntil?: string): void {
+    const saveSnooze = (until: string): void => {
+      this.mailService.snoozeMail(mail, until).subscribe({
+        next: () => {
+          this.mails = this.mails.filter(m => m.id === mail.id);
+          this.snackBar.open(`Email snoozed until ${new Date(until).toLocaleString()}`, 'Close', {
+            duration: 3000
+          });
+        },
+
+        error: (error) => {
+          console.error('Error snoozing mail', error);
+          this.snackBar.open('Unable to snooze email', 'Close', {
+            duration: 3000
+          });
+        }
+      });
+    };
+
+    if (snoozedUntil) {
+      saveSnooze(snoozedUntil);
+      return;
+    }
+
+    const dialogRef = this.dialog.open(SnoozeDialog, {
+      width: '450px',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.snoozedUntil) {
+        saveSnooze(result.snoozedUntil);
+      }
+    });
+  }
+
+  // snooze for today
+  snoozeLaterToday(mail: Mail): void {
+    const now = new Date();
+    const snoozeDate = new Date(now);
+    snoozeDate.setHours(18, 0, 0, 0);
+
+    // if 6pm is passed move to tom 9am
+    if (snoozeDate <= now) {
+      snoozeDate.setDate(snoozeDate.getDate() + 1);
+      snoozeDate.setHours(9, 0, 0, 0);
+    }
+    this.snoozeMail(mail, snoozeDate.toISOString());
+  }
+
+  // snooze for tomorrow
+  snoozeTomorrow(mail: Mail): void {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0);
+
+    this.snoozeMail(mail, tomorrow.toISOString());
+  }
+
+  // snooze for weekend
+  snoozeWeekend(mail: Mail): void {
+    const date = new Date();
+    const day = date.getDay();
+
+    // Saturday = 6
+    const daysUntilSaturday = 6 - day;
+    date.setDate(date.getDate() + daysUntilSaturday);
+    date.setHours(8, 0, 0, 0);
+
+    this.snoozeMail(mail, date.toISOString());
+  }
+
+  // snooze for next week
+  snoozeNextWeek(mail: Mail): void {
+    const date = new Date();
+    const day = date.getDay();
+
+    //      Calculate next Monday
+    const daysUntilMonday = day === 0 ? 1 : 8 - day;
+    date.setDate(date.getDate() + daysUntilMonday);
+    date.setHours(8, 0, 0, 0);
+
+    this.snoozeMail(mail, date.toISOString());
+  }
+
+  // customize snooze mails
+  openCustomSnooze(mail: Mail): void {
+    const dialogRef = this.dialog.open(SnoozeDialog, {
+      width: '550px',
+      maxWidth: '95vw',
+      data: {
+        mail: mail
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (!result?.snoozedUntil) {
+        return;
+      }
+
+      this.applySnooze(mail, result.snoozedUntil)
+    });
+  }
+
+  applySnooze(mail: Mail, snoozedUntil: string): void {
+    this.mailService.snoozeMail(mail, snoozedUntil).subscribe({
+      next: () => {
+        // remove from current mail list
+        this.mails = this.mails.filter(m => m.id !== mail.id);
+        this.snackBar.open('Conversation snoozed', 'Close', {
+          duration: 3000
+        });
+      },
+      error: (error) => {
+        console.error('Error soozing mail', error);
+        this.snackBar.open('Unable to snooze conversation', 'Close', {
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  // mark as unread mail
+  markAsUnreadMail(mail: Mail): void {
+    mail.read = false;
+    this.mailService.updateReadStatus(mail).subscribe({
+      next: () => {
+        mail.read = false;
+      },
+      error: (error) => {
+        console.error('Failed to mark mail as unread', error);
+      }
+    });
+  }
+
+  // mark as read mail
+  markAsReadMail(mail: Mail): void {
+    if (mail.read) {
+      return;
+    }
+
+    //
+    const previousState = mail.read;
+    mail.read = true;
+
+    this.mailService.updateReadStatus(mail).subscribe({
+      next: (updatedMail) => {
+        mail.read = updatedMail.read;
+      },
+      error: (error) => {
+        console.error('Failed to mark as read error', error);
+        mail.read = previousState;
+      }
+    });
+  }
+
   // move to archive 
   archiveMail(mail: Mail): void {
     this.mailService.archiveMail(mail).subscribe({
@@ -574,11 +814,50 @@ export class Inbox {
 
   }
 
-  // Reply mail
+  // // Reply mail
+  // replyMail(mail: Mail): void {
+
+  //   const currentUser = this.mailService.getCurrentUser();
+
+  //   if (!currentUser) {
+  //     return;
+  //   }
+
+  //   // const threadId = mail.threadId || `thread-${mail.id}`
+
+  //   const dialogRef = this.dialog.open(ComposeDialog, {
+  //     width: '550px',
+  //     maxWidth: '95vw',
+  //     position: {
+  //       bottom: '0',
+  //       right: '40px'
+  //     },
+  //     panelClass: 'compose-dialog-panel',
+  //     data: {
+  //       mode: 'reply',
+
+  //       from: currentUser.email,
+
+  //       to: mail.from === currentUser.email ? mail.to : mail.from, //reply goes to the sender
+
+  //       subject: mail.subject.startsWith('Re:') ? mail.subject : `Re: ${mail.subject}`,
+
+  //       body: '',
+
+  //       threadId: mail.threadId,
+
+  //       replyToId: mail.id
+  //     }
+  //   });
+
+  //   dialogRef.afterClosed().subscribe(result => {
+  //     if (result) {
+  //       this.refresh();
+  //     }
+  //   });
+  // }
+
   replyMail(mail: Mail): void {
-    if (!this.selectedMail) {
-      return;
-    }
 
     const currentUser = this.mailService.getCurrentUser();
 
@@ -586,27 +865,60 @@ export class Inbox {
       return;
     }
 
+    // Make sure the conversation has a thread ID.
+    const threadId = mail.threadId || `thread-${mail.id}`;
+
+    const recipient =
+      mail.from === currentUser.email
+        ? mail.to
+        : mail.from;
+
+    const subject = mail.subject?.startsWith('Re:')
+      ? mail.subject
+      : `Re: ${mail.subject}`;
+
     const dialogRef = this.dialog.open(ComposeDialog, {
+
       width: '550px',
       maxWidth: '95vw',
+
       position: {
-        bottom: '0',
+        bottom: '20px',
         right: '40px'
       },
+
       panelClass: 'compose-dialog-panel',
+
       data: {
+        mode: 'reply',
+
         from: currentUser.email,
-        to: this.selectedMail.from, //reply goes to the sender
-        subject: this.selectedMail.subject.startsWith('Re:')
-          ? this.selectedMail.subject : `Re: ${this.selectedMail.subject}`,
-        body: ''
+
+        to: recipient,
+
+        subject: subject,
+
+        body: '',
+
+        // VERY IMPORTANT
+        threadId: threadId,
+
+        // Keep reference to message being replied to
+        replyToId: mail.id
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+
+      if (result?.sent) {
+
+        // Reload the conversation
+        this.openMail(mail);
+
+        // Also refresh the list if necessary
         this.refresh();
       }
+
     });
   }
 
@@ -696,8 +1008,7 @@ export class Inbox {
       gender: currentUser.gender,
       phone: currentUser.phone,
       email: currentUser.email,
-      emailChangeCount: currentUser.emailChangeCount ?? 0,
-      emailChangeYear: currentUser.emailChangeYear ?? new Date().getFullYear(),
+      emailLastChangedAt: currentUser.emailLastChangedAt ?? null,
       emailChangeStartedAt: currentUser.emailChangeStartedAt ?? null,
       emailChangeExpiresAt: currentUser.emailChangeExpiresAt ?? null
     };
@@ -714,52 +1025,20 @@ export class Inbox {
         return
       };
 
-      if (currentUser.id === undefined) {
-        this.snackBar.open('Unable to update profile', 'Close', {
-          duration: 3000
-        });
-        return;
-      }
+      // update curent user
+      this.mailService.currentUser = result;
 
-      const updatedData: Partial<User> = {
-        fname: result.name.split(' ')[0] || currentUser.fname,
-        lname: result.name.split(' ').slice(1).join(' ') || currentUser.lname,
+      // saving updated user
+      localStorage.setItem('smailCurrentUser', JSON.stringify(result));
+
+      // Update profile object
+      this.userProfile = {
+        name: `${result.fname} ${result.lname}`.trim(),
         dob: result.dob,
         gender: result.gender,
-        phone: result.phone,
-        email: result.email,
-        emailChangeCount: result.emailChangeCount,
-        emailChangeYear: result.emailChangeYear,
-        emailChangeStartedAt: result.emailChangeStartedAt,
-        emailChangeExpiresAt: result.emailChangeExpiresAt
+        phone: result.phone || '',
+        email: result.email
       };
-
-      // update phone in db.json
-      this.mailService.updateUser(currentUser.id, updatedData).subscribe({
-        next: (updatedUser) => {
-          this.mailService.currentUser = updatedUser;
-
-          // saving updated user
-          localStorage.setItem('smailCurrentUser', JSON.stringify(updatedUser));
-
-          // Update profile object
-          this.userProfile = {
-            name: `${updatedUser.fname} ${updatedUser.lname}`,
-            dob: updatedUser.dob,
-            gender: updatedUser.gender,
-            phone: updatedUser.phone || '',
-            email: updatedUser.email
-          };
-          this.snackBar.open('Profile updated successfully', 'Close', {
-            duration: 3000
-          });
-        },
-        error: (error) => {
-          this.snackBar.open('Unable to update profile', 'Close', {
-            duration: 3000
-          });
-        }
-      })
     });
   }
 

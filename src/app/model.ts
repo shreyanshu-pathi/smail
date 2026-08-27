@@ -9,8 +9,7 @@ export interface User {
     phone?: string;
 
     // email change
-    emailChangeCount?: number;
-    emailChangeYear?: number;
+    emailLastChangedAt?: string | null;
     emailChangeStartedAt?: string | null;
     emailChangeExpiresAt?: string | null;
 }
@@ -22,14 +21,20 @@ export interface Mail {
     subject: string;
     body: string;
     date: string;
+
+    selected?: boolean;
     read: boolean;
     starred: boolean;
+    snoozed?: boolean;
+    snoozedUntil?: string | null;
     draft?: boolean;
     spam?: boolean;
     archived?: boolean;
     trash: boolean;
+
     threadId?: string;
     replyToId?: number;
+
     attachment?: {
         name: string;
         type: string;
@@ -39,4 +44,4 @@ export interface Mail {
     promotion?: boolean;
     social?: boolean;
     updates?: boolean;
-}
+}  

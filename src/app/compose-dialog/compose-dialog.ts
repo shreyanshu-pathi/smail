@@ -30,6 +30,8 @@ export class ComposeDialog {
   // Attachments
   selectedFile: File | null = null;
   attachmentName = '';
+  attachmentData: string | null = null;
+  attachmentType = '';
 
   // draft
   isDraft: boolean = false;
@@ -62,7 +64,7 @@ export class ComposeDialog {
     }
   }
 
-  // Send mail
+  // send mail from compose
   sendMail(): void {
 
     if (this.composeForm.invalid) {
@@ -72,91 +74,147 @@ export class ComposeDialog {
 
     const formValue = this.composeForm.value;
 
-    const recipients: string[] = formValue.to.split(',').map((email: string) => email.trim()).
-      filter((email: string) => email !== '');
+    const recipients: string[] = formValue.to
+      .split(',').map((email: string) => email.trim()).filter((email: string) => email !== '');
 
     const toControl = this.composeForm.get('to');
 
-    // check if atleast one recipient is added
+    // No recipients
     if (recipients.length === 0) {
-      toControl?.setErrors({ required: true });
+      toControl?.setErrors({
+        required: true
+      });
+
       toControl?.markAsTouched();
       return;
     }
 
-    // invalid email
-    const invalidEmails = recipients.filter((email: string) => !this.isValidEmail(email));
+    // Validate email format
+    const invalidEmails = recipients.filter(
+      (email: string) => !this.isValidEmail(email)
+    );
 
     if (invalidEmails.length > 0) {
-      toControl?.setErrors({ invalidEmail: true });
+      toControl?.setErrors({
+        invalidEmail: true
+      });
+
       toControl?.markAsTouched();
       return;
     }
 
-    // checks all registered recipients before sending
+    // Check registered users
     this.mailService.getUsers().subscribe({
       next: (users) => {
 
-        // checks existing recipients
-        const validRecipients = recipients.filter(
-          (email: string) => users.some(user => user.email.toLowerCase() === email.toLowerCase()));
+        const invalidRecipients = recipients.filter(
+          (email: string) => !users.some(user => user.email.toLowerCase() === email.toLowerCase())
+        );
 
-        // finds recipients that don't exist
-        const inValidRecipients = recipients.filter(
-          (email: string) => !users.some(user => user.email.toLowerCase() === email.toLowerCase()));
-
-        if (inValidRecipients.length > 0) {
-          toControl?.setErrors({ userNotFound: true });
+        if (invalidRecipients.length > 0) {
+          toControl?.setErrors({
+            userNotFound: true
+          });
           toControl?.markAsTouched();
           return;
         }
 
-        // send mail separatly evry recipient
-        let count = 0;
+        let sentCount = 0;
 
-        validRecipients.forEach((recipient: string) => {
+        recipients.forEach((recipient: string) => {
 
           const mail: Mail = {
+
             from: this.data.from,
+
+            // Individual recipient
             to: recipient,
-            subject: formValue.subject,
-            body: formValue.body,
+            subject: this.composeForm.value.subject,
+            body: this.composeForm.value.body,
             date: new Date().toISOString(),
+
             read: false,
             starred: false,
             trash: false,
-            draft: false
+            draft: false,
+            spam: false,
+            archived: false,
+
+            // Reply keeps original thread
+            threadId: this.data?.threadId,
+
+            // Message being replied to
+            replyToId: this.data?.replyToId,
+
+            // image attachment
+            attachment: this.attachmentData ? 
+            {
+              name: this.attachmentName,
+              type: this.attachmentType,
+              data: this.attachmentData
+            } : undefined
           };
 
-          // remove the exisiting draft ater sending
-          if (this.isDraft && this.data?.id) {
-            this.mailService.deleteDraft(this.data.id).subscribe({
-              next: () => {
-                console.log('Draft removed')
-              },
-              error: (error) => {
-                console.error('error deleting draft', error)
-              }
-            });
-          }
-
           this.mailService.sendMail(mail).subscribe({
+
             next: () => {
-              this.snackBar.open('Email sent', 'Close', {
-                duration: 3000
-              });
-              this.dialogRef.close(this.data)
+
+              sentCount++;
+
+              // Delete original draft if necessary
+              if (this.isDraft && this.data?.id) {
+                this.mailService.deleteDraft(this.data.id).subscribe({
+                  next: () => {
+                    console.log('Draft removed');
+                  },
+                  error: (error) => {
+                    console.error('Error deleting draft', error);
+                  }
+                });
+              }
+
+              // Close only after successful send
+              if (sentCount === recipients.length) {
+                this.snackBar.open('Email sent', 'Close',
+                  {
+                    duration: 3000
+                  }
+                );
+
+                this.dialogRef.close({
+                  sent: true
+                });
+              }
+
             },
 
             error: (error) => {
               console.error('Error sending email:', error);
-              this.snackBar.open('Email not sent', 'Close', {
-                duration: 3000
-              });
+              this.snackBar.open('Email not sent', 'Close',
+                {
+                  duration: 3000
+                }
+              );
+
             }
+
           });
+
         });
+
+      },
+
+      error: (error) => {
+        console.error('Error getting users:', error);
+
+        this.snackBar.open('Unable to verify recipient', 'Close',
+          {
+            duration: 3000
+          }
+        );
+
       }
+
     });
   }
 
@@ -164,16 +222,54 @@ export class ComposeDialog {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
 
-    if (!input.files || input.files.length === 0) return;
+    if (!input.files || input.files.length === 0) {
+      return;
+    }
 
-    this.selectedFile = input.files[0];
-    this.attachmentName = this.selectedFile.name;
+    const file = input.files[0];
+    if (!file.type.startsWith('image/')) {
+      this.snackBar.open(
+        'Please select an image file',
+        'Close',
+        { duration: 3000 }
+      );
+
+      input.value = '';
+      return;
+    }
+
+    this.selectedFile = file;
+    this.attachmentName = file.name;
+    this.attachmentType = file.type;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      this.attachmentData = reader.result as string;
+    };
+
+    reader.onerror = () => {
+      this.snackBar.open(
+        'Unable to read attachment',
+        'Close',
+        { duration: 3000 }
+      );
+
+      this.selectedFile = null;
+      this.attachmentName = '';
+      this.attachmentData = null;
+      this.attachmentType = '';
+    };
+
+    reader.readAsDataURL(file);
   }
 
   // remove attach files
   removeAttachment(): void {
     this.selectedFile = null;
     this.attachmentName = '';
+    this.attachmentData = null;
+    this.attachmentType = '';
   }
 
   // close the compose dialog

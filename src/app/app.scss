@@ -1,808 +1,159 @@
-// // // // Check whether user can change email
-// // // canChangeEmail(user: User): boolean {
+// replace 
+// <mat-checkbox
+//   [checked]="allSelected"
+//   (change)="toggleSelectAll($event.checked)"
+//   matTooltip="Select">
+// </mat-checkbox>
 
-// // //   const currentYear = new Date().getFullYear();
+// 2. Add a checkbox to every mail
+// Wherever you display each mail in your inbox.html, add
+// <mat-checkbox
+//   [(ngModel)]="mail.selected"
+//   (click)="$event.stopPropagation()"
+//   (change)="updateSelectAllState()"
+//   matTooltip="Select mail">
+// </mat-checkbox>
 
-// // //   // If year has changed, reset the yearly count
-// // //   if (user.emailChangeYear !== currentYear) {
-// // //     return true;
-// // //   }
+// <div
+//   class="mail-row"
+//   *ngFor="let mail of mails"
+//   (click)="openMail(mail)">
 
-// // //   // Maximum 2 changes per year
-// // //   if ((user.emailChangeCount ?? 0) >= 2) {
-// // //     return false;
-// // //   }
+//   <mat-checkbox
+//     [(ngModel)]="mail.selected"
+//     (click)="$event.stopPropagation()"
+//     (change)="updateSelectAllState()">
+//   </mat-checkbox>
 
-// // //   // Check whether an active 1-hour window exists
-// // //   if (user.emailChangeExpiresAt) {
+//   <!-- rest of your mail -->
+// </div>
 
-// // //     const expiresAt = new Date(user.emailChangeExpiresAt).getTime();
-// // //     const now = Date.now();
+// // Controls the main checkbox
+// allSelected = false;
 
-// // //     if (now < expiresAt) {
-// // //       return true;
-// // //     }
-// // //   }
 
-// // //   return true;
-// // // }
+// // Select / deselect all mails using the main checkbox
+// toggleSelectAll(checked: boolean): void {
 
-// startEmailChangeWindow(user: User): Observable<User> {
+//   this.allSelected = checked;
 
-//   const currentYear = new Date().getFullYear();
-
-//   let count = user.emailChangeCount ?? 0;
-
-//   // New year -> reset count
-//   if (user.emailChangeYear !== currentYear) {
-//     count = 0;
-//   }
-
-//   // Maximum 2 changes
-//   if (count >= 2) {
-//     throw new Error('Email change limit reached for this year');
-//   }
-
-//   const startedAt = new Date();
-
-//   const expiresAt = new Date(
-//     startedAt.getTime() + 60 * 60 * 1000
-//   );
-
-//   return this.updateUser(user.id!, {
-//     emailChangeYear: currentYear,
-//     emailChangeStartedAt: startedAt.toISOString(),
-//     emailChangeExpiresAt: expiresAt.toISOString()
+//   this.mails.forEach(mail => {
+//     mail.selected = checked;
 //   });
 // }
 
 
-// actual email change
-// changeEmail(
-//   user: User,
-//   newEmail: string
-// ): Observable<User> {
+// // Select all mails
+// selectAll(): void {
 
-//   const currentYear = new Date().getFullYear();
-
-//   const count = user.emailChangeCount ?? 0;
-
-//   // Reset yearly count if new year
-//   const currentCount =
-//     user.emailChangeYear === currentYear
-//       ? count
-//       : 0;
-
-//   // Check yearly limit
-//   if (currentCount >= 2) {
-//     throw new Error(
-//       'You have reached the maximum of 2 email changes for this year.'
-//     );
-//   }
-
-//   // Check one-hour window
-//   if (
-//     !user.emailChangeExpiresAt ||
-//     Date.now() > new Date(user.emailChangeExpiresAt).getTime()
-//   ) {
-//     throw new Error(
-//       'Your 1-hour email change window has expired.'
-//     );
-//   }
-
-//   const newCount = currentCount + 1;
-
-//   return this.updateUser(user.id!, {
-//     email: newEmail,
-//     emailChangeCount: newCount,
-//     emailChangeYear: currentYear,
-//     emailChangeStartedAt: null,
-//     emailChangeExpiresAt: null
+//   this.mails.forEach(mail => {
+//     mail.selected = true;
 //   });
+
+//   this.allSelected = true;
 // }
 
 
-// // <h2 mat-dialog-title>User Profile</h2>
+// // Select no mails
+// selectNone(): void {
 
-// // <mat-dialog-content>
+//   this.mails.forEach(mail => {
+//     mail.selected = false;
+//   });
 
-// //     <!-- Name -->
-// //     <mat-form-field appearance="outline" class="full-width">
-// //         <mat-label>Name</mat-label>
-// //         <input matInput [(ngModel)]="data.name">
-// //     </mat-form-field>
+//   this.allSelected = false;
+// }
 
 
-// //     <!-- Date of Birth -->
-// //     <mat-form-field appearance="outline" class="full-width">
-// //         <mat-label>Date of Birth</mat-label>
-// //         <input
-// //             matInput
-// //             [value]="data.dob | date:'dd/MM/yyyy'">
-// //     </mat-form-field>
+// // Select only read mails
+// selectRead(): void {
 
+//   this.mails.forEach(mail => {
+//     mail.selected = mail.read === true;
+//   });
 
-// //     <!-- Gender -->
-// //     <mat-form-field appearance="outline" class="full-width">
-// //         <mat-label>Gender</mat-label>
-// //         <input matInput [(ngModel)]="data.gender">
-// //     </mat-form-field>
+//   this.updateSelectAllState();
+// }
 
 
-// //     <!-- Phone -->
-// //     <mat-form-field appearance="outline" class="full-width">
-// //         <mat-label>Phone</mat-label>
+// // Select only unread mails
+// selectUnread(): void {
 
-// //         <input
-// //             matInput
-// //             type="tel"
-// //             maxlength="10"
-// //             [(ngModel)]="data.phone">
-// //     </mat-form-field>
+//   this.mails.forEach(mail => {
+//     mail.selected = mail.read !== true;
+//   });
 
+//   this.updateSelectAllState();
+// }
 
-// //     <!-- Email -->
-// //     <mat-form-field appearance="outline" class="full-width">
 
-// //         <mat-label>Email</mat-label>
+// // Select only starred mails
+// selectStarred(): void {
 
-// //         <input
-// //             matInput
-// //             type="email"
-// //             [(ngModel)]="data.email"
-// //             [disabled]="!emailEditing">
+//   this.mails.forEach(mail => {
+//     mail.selected = mail.starred === true;
+//   });
 
-// //         @if (emailEditing) {
-// //             <mat-hint>
-// //                 You have 1 hour to save the new email.
-// //             </mat-hint>
-// //         }
+//   this.updateSelectAllState();
+// }
 
-// //     </mat-form-field>
 
+// // Select only unstarred mails
+// selectUnstarred(): void {
 
-// //     <!-- Email change information -->
+//   this.mails.forEach(mail => {
+//     mail.selected = mail.starred !== true;
+//   });
 
-// //     @if (!emailEditing) {
+//   this.updateSelectAllState();
+// }
 
-// //         <div class="email-change-info">
 
-// //             <p>
-// //                 Email changes used:
-// //                 <strong>{{ emailChangeCount }}/2</strong>
-// //                 this year
-// //             </p>
+// // Update main checkbox according to individual mail selection
+// updateSelectAllState(): void {
 
-// //             @if (emailChangeCount < 2) {
-
-// //                 <button
-// //                     mat-stroked-button
-// //                     type="button"
-// //                     (click)="startEmailChange()">
-
-// //                     Change Email
-
-// //                 </button>
-
-// //             } @else {
-
-// //                 <p class="limit-message">
-// //                     You have reached your email change limit
-// //                     for this year.
-// //                 </p>
-
-// //             }
-
-// //         </div>
-
-// //     } @else {
-
-// //         <div class="email-timer">
-
-// //             <strong>
-// //                 Time remaining: {{ timeRemaining }}
-// //             </strong>
-
-// //             <p>
-// //                 You must save the new email before the
-// //                 1-hour window expires.
-// //             </p>
-
-// //         </div>
-
-// //     }
-
-// // </mat-dialog-content>
-
-
-// // <mat-dialog-actions align="end">
-
-// //     <button
-// //         mat-stroked-button
-// //         (click)="close()">
-
-// //         Cancel
-
-// //     </button>
-
-// //     <button
-// //         mat-raised-button
-// //         (click)="save()">
-
-// //         Save
-
-// //     </button>
-
-// // </mat-dialog-actions>
-
-// // import {
-// //   Component,
-// //   Inject,
-// //   OnDestroy,
-// //   OnInit
-// // } from '@angular/core';
-
-// // import { DatePipe } from '@angular/common';
-
-// // import { FormsModule } from '@angular/forms';
-
-// // import {
-// //   MAT_DIALOG_DATA,
-// //   MatDialogModule,
-// //   MatDialogRef
-// // } from '@angular/material/dialog';
-
-// // import { MatFormFieldModule } from '@angular/material/form-field';
-
-// // import { MatInputModule } from '@angular/material/input';
-
-// // import { MatButtonModule } from '@angular/material/button';
-
-// // import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-
-// // import { MailService } from '../mail-service';
-
-// // import { User } from '../model';
-
-
-// // @Component({
-// //   selector: 'app-user-profile-dialog',
-
-// //   imports: [
-// //     MatDialogModule,
-// //     MatFormFieldModule,
-// //     MatInputModule,
-// //     MatButtonModule,
-// //     FormsModule,
-// //     DatePipe,
-// //     MatSnackBarModule
-// //   ],
-
-// //   templateUrl: './user-profile-dialog.html',
-
-// //   styleUrl: './user-profile-dialog.scss'
-// // })
-// // export class UserProfileDialog implements OnInit, OnDestroy {
-
-// //   emailEditing = false;
-
-// //   emailChangeCount = 0;
-
-// //   timeRemaining = '01:00:00';
-
-// //   private timer: any;
-
-// //   private originalEmail = '';
-
-
-// //   constructor(
-// //     public dialogRef: MatDialogRef<UserProfileDialog>,
-
-// //     @Inject(MAT_DIALOG_DATA)
-// //     public data: any,
-
-// //     private mailService: MailService,
-
-// //     private snackBar: MatSnackBar
-// //   ) {}
-
-
-// //   ngOnInit(): void {
-
-// //     this.originalEmail = this.data.email;
-
-// //     this.emailChangeCount =
-// //       this.data.emailChangeCount ?? 0;
-
-// //     this.checkExistingEmailWindow();
-// //   }
-
-
-// //   // Check whether an already-started window is active
-// //   checkExistingEmailWindow(): void {
-
-// //     if (!this.data.emailChangeExpiresAt) {
-// //       return;
-// //     }
-
-// //     const expiresAt =
-// //       new Date(this.data.emailChangeExpiresAt).getTime();
-
-// //     const now = Date.now();
-
-// //     if (now < expiresAt) {
-
-// //       this.emailEditing = true;
-
-// //       this.startTimer(expiresAt);
-
-// //     }
-// //   }
-
-
-// //   // Start one-hour email editing window
-// //   startEmailChange(): void {
-
-// //     if (this.emailChangeCount >= 2) {
-
-// //       this.snackBar.open(
-// //         'You can change your email only twice a year.',
-// //         'Close',
-// //         {
-// //           duration: 3000
-// //         }
-// //       );
-
-// //       return;
-// //     }
-
-
-// //     const currentUser =
-// //       this.mailService.getCurrentUser();
-
-// //     if (!currentUser) {
-// //       return;
-// //     }
-
-
-// //     this.mailService
-// //       .startEmailChangeWindow(currentUser)
-// //       .subscribe({
-
-// //         next: (updatedUser) => {
-
-// //           this.data.emailChangeStartedAt =
-// //             updatedUser.emailChangeStartedAt;
-
-// //           this.data.emailChangeExpiresAt =
-// //             updatedUser.emailChangeExpiresAt;
-
-// //           this.emailEditing = true;
-
-// //           const expiresAt =
-// //             new Date(
-// //               updatedUser.emailChangeExpiresAt!
-// //             ).getTime();
-
-// //           this.startTimer(expiresAt);
-
-// //           this.snackBar.open(
-// //             'You have 1 hour to change your email.',
-// //             'Close',
-// //             {
-// //               duration: 3000
-// //             }
-// //           );
-// //         },
-
-// //         error: (error) => {
-
-// //           this.snackBar.open(
-// //             error.message ||
-// //             'Unable to start email change.',
-// //             'Close',
-// //             {
-// //               duration: 3000
-// //             }
-// //           );
-
-// //         }
-
-// //       });
-// //   }
-
-
-// //   // Countdown timer
-// //   startTimer(expiresAt: number): void {
-
-// //     this.stopTimer();
-
-// //     this.updateTimer(expiresAt);
-
-// //     this.timer = setInterval(() => {
-
-// //       this.updateTimer(expiresAt);
-
-// //     }, 1000);
-// //   }
-
-
-// //   updateTimer(expiresAt: number): void {
-
-// //     const remaining =
-// //       expiresAt - Date.now();
-
-
-// //     if (remaining <= 0) {
-
-// //       this.timeRemaining = '00:00:00';
-
-// //       this.emailEditing = false;
-
-// //       this.stopTimer();
-
-// //       this.snackBar.open(
-// //         'Your 1-hour email change window has expired.',
-// //         'Close',
-// //         {
-// //           duration: 3000
-// //         }
-// //       );
-
-// //       return;
-// //     }
-
-
-// //     const hours =
-// //       Math.floor(
-// //         remaining / (1000 * 60 * 60)
-// //       );
-
-// //     const minutes =
-// //       Math.floor(
-// //         (remaining % (1000 * 60 * 60))
-// //         / (1000 * 60)
-// //       );
-
-// //     const seconds =
-// //       Math.floor(
-// //         (remaining % (1000 * 60))
-// //         / 1000
-// //       );
-
-
-// //     this.timeRemaining =
-// //       `${this.pad(hours)}:${this.pad(minutes)}:${this.pad(seconds)}`;
-// //   }
-
-
-// //   pad(value: number): string {
-
-// //     return value
-// //       .toString()
-// //       .padStart(2, '0');
-// //   }
-
-
-// //   stopTimer(): void {
-
-// //     if (this.timer) {
-
-// //       clearInterval(this.timer);
-
-// //       this.timer = null;
-// //     }
-// //   }
-
-
-// //   close(): void {
-
-// //     this.stopTimer();
-
-// //     this.dialogRef.close();
-// //   }
-
-
-// //   save(): void {
-
-// //     // Email has not changed
-// //     if (this.data.email === this.originalEmail) {
-
-// //       this.stopTimer();
-
-// //       this.dialogRef.close(this.data);
-
-// //       return;
-// //     }
-
-
-// //     // Email was changed but editing wasn't enabled
-// //     if (!this.emailEditing) {
-
-// //       this.snackBar.open(
-// //         'Click "Change Email" before changing your email.',
-// //         'Close',
-// //         {
-// //           duration: 3000
-// //         }
-// //       );
-
-// //       return;
-// //     }
-
-
-// //     // Check empty email
-// //     if (!this.data.email?.trim()) {
-
-// //       this.snackBar.open(
-// //         'Email cannot be empty.',
-// //         'Close',
-// //         {
-// //           duration: 3000
-// //         }
-// //       );
-
-// //       return;
-// //     }
-
-
-// //     // Check email format
-// //     const emailPattern =
-// //       /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// //     if (!emailPattern.test(this.data.email)) {
-
-// //       this.snackBar.open(
-// //         'Please enter a valid email address.',
-// //         'Close',
-// //         {
-// //           duration: 3000
-// //         }
-// //       );
-
-// //       return;
-// //     }
-
-
-// //     const currentUser =
-// //       this.mailService.getCurrentUser();
-
-// //     if (!currentUser) {
-// //       return;
-// //     }
-
-
-// //     // Check whether one-hour window expired
-// //     if (
-// //       !currentUser.emailChangeExpiresAt ||
-// //       Date.now() >
-// //       new Date(
-// //         currentUser.emailChangeExpiresAt
-// //       ).getTime()
-// //     ) {
-
-// //       this.snackBar.open(
-// //         'Your 1-hour email change window has expired.',
-// //         'Close',
-// //         {
-// //           duration: 3000
-// //         }
-// //       );
-
-// //       this.emailEditing = false;
-
-// //       return;
-// //     }
-
-
-// //     this.mailService
-// //       .changeEmail(
-// //         currentUser,
-// //         this.data.email.trim()
-// //       )
-// //       .subscribe({
-
-// //         next: (updatedUser) => {
-
-// //           this.stopTimer();
-
-// //           this.emailChangeCount =
-// //             updatedUser.emailChangeCount ?? 0;
-
-// //           this.data.email =
-// //             updatedUser.email;
-
-// //           this.data.emailChangeCount =
-// //             updatedUser.emailChangeCount;
-
-// //           this.data.emailChangeYear =
-// //             updatedUser.emailChangeYear;
-
-// //           this.data.emailChangeStartedAt =
-// //             null;
-
-// //           this.data.emailChangeExpiresAt =
-// //             null;
-
-
-// //           this.snackBar.open(
-// //             'Email updated successfully.',
-// //             'Close',
-// //             {
-// //               duration: 3000
-// //             }
-// //           );
-
-
-// //           this.dialogRef.close(this.data);
-// //         },
-
-
-// //         error: (error) => {
-
-// //           this.snackBar.open(
-// //             error.message ||
-// //             'Unable to update email.',
-// //             'Close',
-// //             {
-// //               duration: 3000
-// //             }
-// //           );
-
-// //         }
-
-// //       });
-// //   }
-
-
-// //   ngOnDestroy(): void {
-
-// //     this.stopTimer();
-// //   }
-// // }
-
-// // const profileData = {
-// //   id: currentUser.id,
-
-// //   name: `${currentUser.fname} ${currentUser.lname}`,
-
-// //   dob: currentUser.dob,
-
-// //   gender: currentUser.gender,
-
-// //   phone: currentUser.phone,
-
-// //   email: currentUser.email,
-
-// //   emailChangeCount:
-// //     currentUser.emailChangeCount ?? 0,
-
-// //   emailChangeYear:
-// //     currentUser.emailChangeYear ??
-// //     new Date().getFullYear(),
-
-// //   emailChangeStartedAt:
-// //     currentUser.emailChangeStartedAt ?? null,
-
-// //   emailChangeExpiresAt:
-// //     currentUser.emailChangeExpiresAt ?? null
-// // };
-
-// dialogRef.afterClosed().subscribe(result => {
-
-//   if (!result) {
+//   if (this.mails.length === 0) {
+//     this.allSelected = false;
 //     return;
 //   }
 
-//   if (currentUser.id === undefined) {
+//   this.allSelected = this.mails.every(mail => mail.selected === true);
+// }
 
-//     this.snackBar.open(
-//       'Unable to update profile',
-//       'Close',
-//       {
-//         duration: 3000
-//       }
-//     );
 
-//     return;
+// change addmailstobeginnign
+// addMailsToBeginning(mails: Mail[]): void {
+
+//   this.allMails = [];
+
+//   this.mails = mails.map(mail => ({
+//     ...mail,
+//     selected: false
+//   }));
+
+//   this.allSelected = false;
+
+//   if (this.searchText.trim()) {
+//     this.searchMails();
 //   }
+// }
 
+// if you want newest mailat the top
+// addMailsToBeginning(mails: Mail[]): void {
 
-//   const updatedData: Partial<User> = {
+//   this.allMails = [];
 
-//     fname: result.name
-//       .split(' ')[0] || currentUser.fname,
+//   this.mails = mails
+//     .slice()
+//     .reverse()
+//     .map(mail => ({
+//       ...mail,
+//       selected: false
+//     }));
 
-//     lname: result.name
-//       .split(' ')
-//       .slice(1)
-//       .join(' ') || currentUser.lname,
+//   this.allSelected = false;
 
-//     dob: result.dob,
-
-//     gender: result.gender,
-
-//     phone: result.phone,
-
-//     email: result.email,
-
-//     emailChangeCount:
-//       result.emailChangeCount,
-
-//     emailChangeYear:
-//       result.emailChangeYear,
-
-//     emailChangeStartedAt:
-//       result.emailChangeStartedAt,
-
-//     emailChangeExpiresAt:
-//       result.emailChangeExpiresAt
-//   };
-
-
-//   this.mailService
-//     .updateUser(currentUser.id, updatedData)
-//     .subscribe({
-
-//       next: (updatedUser) => {
-
-//         // Update service user
-//         this.mailService.currentUser =
-//           updatedUser;
-
-
-//         // Update localStorage
-//         localStorage.setItem(
-//           'smailCurrentUser',
-//           JSON.stringify(updatedUser)
-//         );
-
-
-//         // Update profile object
-//         this.userProfile = {
-//           name:
-//             `${updatedUser.fname} ${updatedUser.lname}`,
-
-//           dob:
-//             updatedUser.dob,
-
-//           gender:
-//             updatedUser.gender,
-
-//           phone:
-//             updatedUser.phone,
-
-//           email:
-//             updatedUser.email
-//         };
-
-
-//         this.snackBar.open(
-//           'Profile updated successfully',
-//           'Close',
-//           {
-//             duration: 3000
-//           }
-//         );
-//       },
-
-
-//       error: (error) => {
-
-//         console.error(
-//           'Unable to update profile:',
-//           error
-//         );
-
-//         this.snackBar.open(
-//           'Unable to update profile',
-//           'Close',
-//           {
-//             duration: 3000
-//           }
-//         );
-//       }
-
-//     });
-
-// });
+//   if (this.searchText.trim()) {
+//     this.searchMails();
+//   }
+// }

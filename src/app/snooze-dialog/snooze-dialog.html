@@ -1,0 +1,43 @@
+<div class="snooze-dialog">
+
+    <div class="dialog-header">
+
+        <div class="dialog-header-container">
+            <h2>Snooze</h2>
+            <p>Choose when you want this email to appear again.</p>
+        </div>
+
+        <button mat-icon-button mat-dialog-close (click)="cancel()">
+            <mat-icon>close</mat-icon>
+        </button>
+
+    </div>
+
+    <div class="dialog-content">
+
+        <!-- Date -->
+        <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Select date</mat-label>
+            <input matInput [matDatepicker]="picker" [(ngModel)]="selectedDate" [min]="minDate">
+            <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
+        <!-- Time -->
+        <mat-form-field appearance="outline">
+            <mat-label>Select time</mat-label>
+            <input matInput type="time" [(ngModel)]="selectedTime">
+        </mat-form-field>
+    </div>
+
+    <div class="dialog-actions">
+        <button mat-button (click)="cancel()">
+            Cancel
+        </button>
+
+        <button mat-flat-button [disabled]="!selectedDate || !selectedTime" (click)="save()">
+            Save
+        </button>
+    </div>
+
+</div>

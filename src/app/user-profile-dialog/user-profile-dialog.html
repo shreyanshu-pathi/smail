@@ -9,7 +9,7 @@
 
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Date of Birth</mat-label>
-        <input matInput [value]="data.dob | date:'dd/MM/yyyy'">
+        <input matInput type="date" [(ngModel)]="data.dob">
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
@@ -24,36 +24,47 @@
 
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Email</mat-label>
-        <input matInput [(ngModel)]="data.email" [disabled]="!emailEditing">
+        <input matInput type="email" [(ngModel)]="data.email" >
 
         @if(emailEditing){
-        <mat-hint>You have 1 hour to edit your existing email to a new email</mat-hint>
+        <mat-hint>
+            You have 1 hour to edit your existing email to a new email
+        </mat-hint>
         }
     </mat-form-field>
 
     <!-- change of email -->
     @if(!emailEditing){
     <div class="email-change-info">
+        @if(canChangeEmail){
         <p>
-            Email changes used: <strong>{{emailChangeCount}}/2</strong>this year
+            You can change your email now.
         </p>
 
-        @if(emailChangeCount < 2){ <button mat-stroked-button type="button" (click)="startEmailChange()">
+        <button mat-stroked-button type="button" (click)="startEmailChange()">
             Change email
-            </button>
-            } @else {
-            <p class="limit-message">
-                You have reached your email change limit for this year.
-            </p>
-            }
-    </div>
-    }@else {
-    <div class="email-timer">
-        <strong>Time remaining: {{ timeRemaining }}</strong>
-        <p>You must save the new email before the 1 hour expires</p>
+        </button>
+        } @else {
+        <p class="limit-message">
+            You have reached your email change limit for this year. Email can be changed again on
+            <strong>{{nextEmailChangeDate | date: 'dd/MM/yyyy'}}</strong>
+        </p>
+
+        <button mat-stroked-button type="button" disabled>
+            Change email
+        </button>
+        }
     </div>
     }
 
+    @if (emailEditing) {
+    <div class="email-timer">
+        <strong>Time remaining: {{timeRemaining}}</strong>
+        <p>
+            Save your new email before email expires.
+        </p>
+    </div>
+    }
 
     <mat-dialog-actions align="end">
         <button mat-stroked-button (click)="close()">Cancel</button>

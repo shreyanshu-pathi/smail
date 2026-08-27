@@ -114,51 +114,54 @@ export class MailService {
   }
 
   // update user profile
-  updateUser(userId: number, updatedUser: Partial<User>): Observable<User> {
+  updateUser(id: number, userData: Partial<User>): Observable<User> {
     return this.http.patch<User>(
-      `${this.userApiUrl}/${userId}`,
-      updatedUser
+      `${this.userApiUrl}/${id}`,
+      userData
     )
   }
 
   //send mails to user
   sendMail(mail: Mail): Observable<Mail> {
 
-    // checks automatically if the mail is a promotional or social mail
-    const promotion = this.isPromotion(mail);
-    const social = !promotion && this.isSocial(mail);
-    const update = !promotion && !social && this.isUpdate(mail);
+  const promotion = this.isPromotion(mail);
+  const social = !promotion && this.isSocial(mail);
+  const update = !promotion && !social && this.isUpdate(mail);
 
-    const newMail: Mail = {
-      ...mail,
-      promotion: promotion,
-      social: social,
-      updates: update,
+  const newMail: Mail = {
+    ...mail,
 
-      draft: false,
-      trash: false,
-      spam: false,
-      archived: false
-    }
+    // Reply uses existing threadId n New mail gets a new threadId.
+    threadId: mail.threadId || this.generateThreadId(),
 
-    return this.http.post<Mail>(this.mailApiUrl, newMail);
-    //   if (!mail.threadId) {
-    //     mail.threadId = this.generateThreadId()
-    //   }
-    //   return this.http.post<Mail>(this.mailApiUrl, mail);
-    // }
+    promotion,
+    social,
+    updates: update,
 
-    // private generateThreadId(): string {
-    //   return ('thread-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8));
+    draft: false,
+    trash: false,
+    spam: false,
+    archived: false,
+
+    date: mail.date || new Date().toISOString()
+  };
+
+  return this.http.post<Mail>(this.mailApiUrl, newMail);
+}
+
+  private generateThreadId(): string {
+    return 'thread-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
   }
 
-  // get conversation
-  // getConversation(threadId: string): Observable<Mail[]> {
-  //   return this.http.get<Mail[]>(`${this.mailApiUrl}?threadId=${encodeURIComponent(threadId)}`)
-  //     .pipe(map((mails: Mail[]) => mails.filter(mail => mail.threadId === threadId)
-  //       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
-  //     )
-  // }
+  // get conversation mails
+  getConversation(threadId: string): Observable<Mail[]> {
+    return this.http.get<Mail[]>(
+      `${this.mailApiUrl}?threadId=${encodeURIComponent(threadId)}`
+    ).pipe(
+      map(mails => mails.filter(mail => mail.trash !== true && mail.spam !== true)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
+    )
+  }
 
   // get all mails
   getMails(): Observable<Mail[]> {
@@ -180,6 +183,7 @@ export class MailService {
           mail.to === email &&
           mail.draft !== true &&
           mail.spam !== true &&
+          mail.snoozed !== true &&
           mail.archived !== true &&
           mail.trash !== true &&
           mail.promotion !== true &&
@@ -202,6 +206,13 @@ export class MailService {
     return this.getMails();
   }
 
+  // get snoozed mails
+  getSnoozedMails(email: string): Observable<Mail[]> {
+    return this.http.get<Mail[]>(
+      `${this.mailApiUrl}?to=${email}&snoozedUntil_ne=null`  //filter mail which are not equal to null
+    );
+  }
+
   // get archived mails
   getArchivedMails(email: string): Observable<Mail[]> {
     return this.http.get<Mail[]>(
@@ -212,8 +223,20 @@ export class MailService {
   // Update starred status
   updateStarred(mail: Mail): Observable<Mail> {
     return this.http.patch<Mail>(
-      `${this.mailApiUrl}/${mail.id}`, { starred: mail.starred }
+      `${this.mailApiUrl}/${mail.id}`,
+      { starred: mail.starred }
     );
+  }
+
+  // snoozed mail
+  snoozeMail(mail: Mail, snoozedUntil: string): Observable<Mail> {
+    return this.http.patch<Mail>(
+      `${this.mailApiUrl}/${mail.id}`,
+      {
+        snoozed: true,
+        snoozedUntil: snoozedUntil
+      }
+    )
   }
 
   // Move mail to trashs
@@ -376,77 +399,72 @@ export class MailService {
   }
 
   // email change
-  canChangeEmail(user: User): boolean {
-    const currentYear = new Date().getFullYear();
+  // canChangeEmail(user: User): boolean {
+  //   const currentYear = new Date().getFullYear();
 
-    // Maximum 2 times changes per year
-    if ((user.emailChangeCount ?? 0) >= 2) {
-      return false;
-    }
+  //   // Maximum 2 times changes per year
+  //   if ((user.emailChangeCount ?? 0) >= 2) {
+  //     return false;
+  //   }
 
-    // 1 hour window option
-    if (user.emailChangeExpiresAt) {
-      const expiresAt = new Date(user.emailChangeExpiresAt).getTime();
-      const now = Date.now();
-      if (now < expiresAt) {
-        return true;
-      }
-    }
-    return true;
-  }
+  //   // 1 hour window option
+  //   if (user.emailChangeExpiresAt) {
+  //     const expiresAt = new Date(user.emailChangeExpiresAt).getTime();
+  //     const now = Date.now();
+  //     if (now < expiresAt) {
+  //       return true;
+  //     }
+  //   }
+  //   return true;
+  // }
 
   startEmailChangeWindow(user: User): Observable<User> {
-    const currentYear = new Date().getFullYear();
-    let count = user.emailChangeCount ?? 0;
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 60 * 60 * 1000);
 
-    // new year -> reset count
-    if (user.emailChangeYear !== currentYear) {
-      count = 0;
-    }
-
-    // Maximum 2 changes
-    if (count >= 2) {
-      throw new Error('Email change limit reached for this year');
-    }
-
-    const startedAt = new Date();
-
-    const expiresAt = new Date(startedAt.getTime() + 60 * 60 * 1000);
-
-    return this.updateUser(user.id!, {
-      emailChangeYear: currentYear,
-      emailChangeStartedAt: startedAt.toISOString(),
-      emailChangeExpiresAt: expiresAt.toISOString()
-    });
+    return this.http.patch<User>(
+      `${this.userApiUrl}/${user.id}`,
+      {
+        emailChangeStartedAt: now.toISOString(),
+        emailChangeExpiresAt: expiresAt.toISOString()
+      });
   }
 
-  // Email changing
-  changeEmail(user: User, newEmail: string): Observable<User> {
-    const currentYear = new Date().getFullYear();
-    const count = user.emailChangeCount ?? 0;
-
-    const currentCount = user.emailChangeYear === currentYear ? count : 0;
-
-    // Check yearly limit
-    if (currentCount >= 2) {
-      throw new Error('You have reached the maximum of 2 email changes for this year.');
-    }
-
-    // checks one hour window
-    if (!user.emailChangeExpiresAt || Date.now() > new Date(user.emailChangeExpiresAt).getTime()) {
-      throw new Error('Your 1-hour email change window has expired.');
-    }
-
-    const newCount = currentCount + 1;
-
-    return this.updateUser(user.id!, {
-      email: newEmail,
-      emailChangeCount: newCount,
-      emailChangeYear: currentYear,
+  clearEmailChangeWindow(userId: number): Observable<User> {
+    return this.http.patch<User>(
+      `${this.userApiUrl}/${userId}`, {
       emailChangeStartedAt: null,
       emailChangeExpiresAt: null
-    });
+    }
+    )
   }
+  // // Email changing
+  // changeEmail(user: User, newEmail: string): Observable<User> {
+  //   const currentYear = new Date().getFullYear();
+  //   const count = user.emailChangeCount ?? 0;
+
+  //   const currentCount = user.emailChangeYear === currentYear ? count : 0;
+
+  //   // Check yearly limit
+  //   if (currentCount >= 2) {
+  //     throw new Error('You have reached the maximum of 2 email changes for this year.');
+  //   }
+
+  //   // checks one hour window
+  //   if (!user.emailChangeExpiresAt || Date.now() > new Date(user.emailChangeExpiresAt).getTime()) {
+  //     throw new Error('Your 1-hour email change window has expired.');
+  //   }
+
+  //   const newCount = currentCount + 1;
+
+  //   return this.updateUser(user.id!, {
+  //     email: newEmail,
+  //     emailChangeCount: newCount,
+  //     emailChangeYear: currentYear,
+  //     emailChangeStartedAt: null,
+  //     emailChangeExpiresAt: null
+  //   });
+  // }
 
   // logout
   logout() {

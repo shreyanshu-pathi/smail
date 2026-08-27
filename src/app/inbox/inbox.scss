@@ -44,7 +44,7 @@
 
 .search-wrapper {
     position: relative;
-    width: 600px;
+    width: 700px;
 }
 
 .search-container {
@@ -53,7 +53,7 @@
     display: flex;
     align-items: center;
     background: #e9eef6;
-    border-radius: 24px;
+    border-radius: 14px;
     padding: 0 8px;
     box-sizing: border-box;
 }
@@ -465,7 +465,6 @@
 }
 
 .delete-button {
-    margin-left: 8px;
     opacity: 0;
 }
 
