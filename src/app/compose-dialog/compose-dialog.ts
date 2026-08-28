@@ -126,9 +126,7 @@ export class ComposeDialog {
           const mail: Mail = {
 
             from: this.data.from,
-
-            // Individual recipient
-            to: recipient,
+            to: recipient,  // Individual recipient
             subject: this.composeForm.value.subject,
             body: this.composeForm.value.body,
             date: new Date().toISOString(),
@@ -141,18 +139,18 @@ export class ComposeDialog {
             archived: false,
 
             // Reply keeps original thread
-            threadId: this.data?.threadId,
+            threadId: this.data.mode === 'reply' ? this.data.threadId : undefined,
 
             // Message being replied to
-            replyToId: this.data?.replyToId,
+            replyToId: this.data.mode === 'reply' ? this.data.replyToId : undefined,
 
             // image attachment
-            attachment: this.attachmentData ? 
-            {
-              name: this.attachmentName,
-              type: this.attachmentType,
-              data: this.attachmentData
-            } : undefined
+            attachment: this.attachmentData ?
+              {
+                name: this.attachmentName,
+                type: this.attachmentType,
+                data: this.attachmentData
+              } : undefined
           };
 
           this.mailService.sendMail(mail).subscribe({

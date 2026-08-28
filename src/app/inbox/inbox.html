@@ -247,22 +247,16 @@
                         <mat-icon>refresh</mat-icon>
                     </button>
 
-                    <button mat-icon-button matTooltip="More">
+                    <button mat-icon-button [matMenuTriggerFor]="moreMenu" matTooltip="More">
                         <mat-icon>more_vert</mat-icon>
                     </button>
-                </div>
 
-                <!-- right section -->
-                <div class="toolbar-right">
-                    <span>1-50 of many</span>
-
-                    <button mat-icon-button>
-                        <mat-icon>chevron_left</mat-icon>
-                    </button>
-
-                    <button mat-icon-button>
-                        <mat-icon>chevron_right</mat-icon>
-                    </button>
+                    <mat-menu #moreMenu="matMenu">
+                        <button mat-menu-item (click)="markAllAsRead()">
+                            <mat-icon>mark_email_read</mat-icon>
+                            <span>Mark all as read</span>
+                        </button>
+                    </mat-menu>
                 </div>
 
             </div>
@@ -314,7 +308,7 @@
                     <div class="mail-checkbox" (click)="$event.stopPropagation()">
 
                         <mat-checkbox [(ngModel)]="mail.selected" (click)="$event.stopPropagation()"
-                        (change)="updateSelectAllState()" matTooltip="Select mail">
+                            (change)="updateSelectAllState()" matTooltip="Select mail">
                         </mat-checkbox>
 
                     </div>
@@ -334,19 +328,16 @@
 
                     }
 
-
                     <!-- Sender -->
                     <div class="sender">
 
                         @if (mail.draft === true) {
-
                         <span class="draft-label">
                             Draft
                         </span>
 
                         } @else {
-
-                        {{ selectedTab === 'Sent' ? mail.to : mail.from }}
+                        {{ getUserFullName(selectedTab === 'Sent' ? mail.to : mail.from) }}
                         }
 
                     </div>
@@ -476,7 +467,6 @@
 
                         </button>
 
-
                         @if (selectedTab === 'Spam' && selectedMail.spam === true) {
 
                         <button mat-stroked-button class="not-spam" (click)="removeSpam(selectedMail)">
@@ -572,100 +562,96 @@
 
                 </div>
 
-
                 <!-- Conversation -->
                 <div class="conversation-container">
 
-                    @for (message of conversation; track message.id) {
+                    @for (message of conversation; track message.id; let last = $last) {
 
                     <div class="conversation-message">
 
                         <!-- Message Header -->
                         <div class="mail-detail-header">
 
+                            <button mat-icon-button class="avatar-btn">
+                                <mat-icon>account_circle</mat-icon>
+                            </button>
+
+                            <!-- Sender information -->
                             <div class="sender-information">
 
                                 <div class="sender-name">
-
                                     <strong>
                                         {{ message.from }}
                                     </strong>
-
                                 </div>
-
 
                                 <div class="recipient">
-
                                     to {{ message.to }}
-
                                 </div>
 
                             </div>
 
-
+                            <!-- Date -->
                             <div class="detail-date">
-
                                 {{ message.date | date:'dd/MM/yyyy, hh:mm a' }}
-
                             </div>
 
+                            <!-- Message actions -->
+                            <div class="message-actions">
 
-                            <!-- Reply -->
-                            <!-- <button mat-icon-button matTooltip="Reply"
-                                (click)="replyMail(message); $event.stopPropagation()">
-
-                                <mat-icon>
-                                    reply
-                                </mat-icon>
-
-                            </button> -->
-                            <div class="mail-detail-actions">
-
+                                <!-- Star -->
                                 <button mat-icon-button matTooltip="Star" class="detail-star-button"
-                                    (click)="toggleStar(selectedMail); $event.stopPropagation()">
+                                    (click)="toggleStar(message); $event.stopPropagation()">
 
-                                    <mat-icon [class.starred]="selectedMail.starred">
-
-                                        {{ selectedMail.starred
-                                        ? 'star'
-                                        : 'star_border' }}
-
+                                    <mat-icon [class.starred]="message.starred">
+                                        {{ message.starred ? 'star' : 'star_border' }}
                                     </mat-icon>
-
                                 </button>
 
-
+                                <!-- Reply -->
+                                @if (last) {
                                 <button mat-icon-button matTooltip="Reply"
-                                    (click)="replyMail(selectedMail); $event.stopPropagation()">
-
-                                    <mat-icon>
-                                        reply
-                                    </mat-icon>
-
+                                    (click)="replyMail(message); $event.stopPropagation()">
+                                    <mat-icon> reply </mat-icon>
                                 </button>
 
+                                }
 
+                                <!-- More -->
                                 <button mat-icon-button matTooltip="More">
-
-                                    <mat-icon>
-                                        more_vert
-                                    </mat-icon>
-
+                                    <mat-icon> more_vert </mat-icon>
                                 </button>
 
                             </div>
 
                         </div>
 
-
-                        <!-- Message Body -->
+                        <!-- Message body -->
                         <div class="mail-body">
-
                             <p>
                                 {{ message.body }}
                             </p>
-
                         </div>
+
+                    </div>
+
+                    }
+
+                    <!-- Reply / Forward -->
+                    @if (conversation.length > 0) {
+
+                    <div class="mail-actions">
+
+                        <button mat-stroked-button
+                            (click)="replyMail(conversation[conversation.length - 1]); $event.stopPropagation()">
+                            <mat-icon> reply </mat-icon>
+                            Reply
+                        </button>
+
+                        <button mat-stroked-button (click)="forwardMail()">
+                            <mat-icon> forward </mat-icon>
+                            Forward
+                        </button>
 
                     </div>
 
@@ -713,7 +699,7 @@
 
 
                 <!-- Reply / Forward -->
-                <div class="mail-actions">
+                <!-- <div class="mail-actions">
 
                     <button mat-stroked-button (click)="replyMail(selectedMail); $event.stopPropagation()">
 
@@ -736,7 +722,7 @@
 
                     </button>
 
-                </div>
+                </div>-->
 
             </div>
 

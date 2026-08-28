@@ -11,14 +11,13 @@ import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { ComposeDialog } from '../compose-dialog/compose-dialog';
 import { MailService } from '../mail-service';
-import { Mail } from '../model';
+import { Mail, User } from '../model';
 import { DatePipe } from '@angular/common';
 import { UserProfileDialog } from '../user-profile-dialog/user-profile-dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule, MatSnackBarRef } from '@angular/material/snack-bar';
 
 import { MatDividerModule } from '@angular/material/divider';
 import { SnoozeDialog } from '../snooze-dialog/snooze-dialog';
-import { I } from '@angular/cdk/keycodes';
 
 @Component({
   selector: 'app-inbox',
@@ -37,6 +36,9 @@ export class Inbox {
 
   // search mails
   searchText = '';
+
+  // user name/ recipient name
+  users: User[] = []
 
   // contains mails currently displayed
   mails: Mail[] = [];
@@ -58,8 +60,32 @@ export class Inbox {
   draftCount = 0;
 
   ngOnInit(): void {
+    this.loadUsers();
     this.loadInboxMails();
     this.loadDraftCount();
+  }
+
+  // load users
+  loadUsers(): void {
+    this.mailService.getUsers().subscribe({
+      next: (users) => {
+        this.users = users;
+      },
+      error: (error) => {
+        console.error('Error loading user', error)
+      }
+    });
+  }
+
+  // users full to be displayed
+  getUserFullName(email: string): string {
+    const user = this.users.find(user => user.email?.toLowerCase() === email?.toLowerCase());
+
+    if (!user) {
+      return email;
+    }
+
+    return `${user.fname} ${user.lname}`.trim();
   }
 
   // Inbox mails
@@ -247,10 +273,42 @@ export class Inbox {
     const mail = this.selectedMail;
     this.mailService.moveToTrash(mail).subscribe({
       next: () => {
-        this.mails = this.mails.filter(m => m.id !== mail.id);
         this.selectedMail = null;
+        this.conversation = [];
+
+        this.mails = this.mails.filter(m => m.id !== mail.id);
+
+        const snackBarRef = this.snackBar.open('Conversation moved to Trash', 'Undo', {
+          duration: 5000
+        });
+
+        snackBarRef.onAction().subscribe(() => {
+          this.mailService.undoTrash(mail).subscribe({
+            next: (restoredMail) => {
+              this.mails.unshift({
+                ...restoredMail,
+                selected: false
+              });
+
+              this.snackBar.open('Conversation restored', 'Close', {
+                duration: 1000
+              });
+            },
+            error: (error) => {
+              console.error('Error restoring conversation', error);
+              this.snackBar.open('Unable to restore conversation', 'Close', {
+                duration: 3000
+              });
+            }
+          });
+        });
       },
-      error: (error) => { }
+      error: (error) => {
+        console.error('Error moving mail to Trash', error);
+        this.snackBar.open('Unable to move mail to Trash', 'Close', {
+          duration: 3000
+        });
+      }
     });
   }
 
@@ -321,6 +379,39 @@ export class Inbox {
       return;
     }
     this.allSelected = this.mails.every(mail => { mail.selected === true });
+  }
+
+  // Mark all mails as read
+  markAllAsRead(): void {
+    const unreadMails = this.mails.filter(mail => mail.read !== true);
+
+    if (unreadMails.length === 0) {
+      this.snackBar.open('All mails are already read', 'Close', {
+        duration: 3000
+      });
+      return;
+    }
+
+    unreadMails.forEach(mail => {
+
+      // updates UI
+      mail.read = true;
+
+      this.mailService.updateReadStatus(mail).subscribe({
+        next: () => {
+          console.log(`Mail ${mail.id} marked as read`);
+        },
+        error: (error) => {
+          console.error(`Failed to mark mail ${mail.id} as read`, error);
+
+          // Revert if api fails
+          mail.read = false;
+        }
+      });
+    });
+    this.snackBar.open('All mails are marked ass read', 'Close', {
+      duration: 3000
+    });
   }
 
   // selects tab
@@ -728,11 +819,37 @@ export class Inbox {
     this.mailService.archiveMail(mail).subscribe({
       next: () => {
         this.mails = this.mails.filter(m => m.id !== mail.id);
-        this.snackBar.open('Conversation archived', 'Close', { duration: 3000 });
+        const snackBarRef = this.snackBar.open('Conversation archived', 'Undo', { duration: 5000 });
+
+        // Undo clicked
+        snackBarRef.onAction().subscribe(() => {
+          this.mailService.undoArchive(mail).subscribe({
+            next: (restoredMail) => {
+
+              // add mail back to current list
+              this.mails.unshift({
+                ...restoredMail,
+                selected: false
+              });
+
+              this.snackBar.open('Conversation restored', 'Close', {
+                duration: 2000
+              });
+            },
+            error: (error) => {
+              console.error('Error undoing archive', error);
+              this.snackBar.open('Unable to restore conversation', 'Close', {
+                duration: 3000
+              });
+            }
+          });
+        });
       },
       error: (error) => {
         console.error('Error archiving mail:', error);
-        this.snackBar.open('Unable to archive mail', 'Close', { duration: 3000 })
+        this.snackBar.open('Unable to archive mail', 'Close', {
+          duration: 3000
+        });
       }
     });
   }
@@ -754,11 +871,33 @@ export class Inbox {
   // Mark a mail as spam
   markAsSpam(mail: Mail): void {
     this.mailService.markAsSpam(mail).subscribe({
-      next: (updatedMail) => {
+      next: () => {
+
         // removes immediately from curretn tab
         this.mails = this.mails.filter(m => m.id !== mail.id);
-        this.snackBar.open('Mail moved to spam', 'Close', {
-          duration: 3000
+        const snackBarRef = this.snackBar.open('Mail moved to spam', 'Undo', {
+          duration: 5000
+        });
+
+        // undo clicked
+        snackBarRef.onAction().subscribe(() => {
+          this.mailService.undoSpam(mail).subscribe({
+            next: (restoredMail) => {
+              this.mails.unshift({
+                ...restoredMail,
+                selected: false
+              });
+              this.snackBar.open('Mail moved back to inbox', 'Close', {
+                duration: 3000
+              })
+            },
+            error: (error) => {
+              console.error('Error undong spam', error);
+              this.snackBar.open('Unable to restore mail', 'Close', {
+                duration: 3000
+              })
+            }
+          });
         });
       },
       error: (error) => {
@@ -791,15 +930,36 @@ export class Inbox {
   // Move mails to trash
   moveToTrash(mail: Mail): void {
     this.mailService.moveToTrash(mail).subscribe({
-      next: (updatedMail) => {
+      next: () => {
         // Remove from current screen
-        this.mails = this.mails.filter(
-          m => m.id !== updatedMail.id
-        );
-        console.log('Mail moved to trash');
+        this.mails = this.mails.filter(m => m.id !== mail.id);
+        const snackBarRef = this.snackBar.open('Conversation moved to trash', 'Undo', {
+          duration: 5000
+        });
+
+        // undo trash
+        snackBarRef.onAction().subscribe(() => {
+          this.mailService.undoTrash(mail).subscribe({
+            next: (restoredMail) => {
+              this.mails.unshift({
+                ...restoredMail,
+                selected: false
+              });
+              this.snackBar.open('Conversation restored', 'Close', {
+                duration: 3000
+              });
+            },
+            error: (error) => {
+              console.error('Error undoing trash', error);
+              this.snackBar.open('Unable to restore conversation', 'Close', {
+                duration: 3000
+              });
+            }
+          });
+        });
       },
       error: (error) => {
-        console.error('Error moving mail to trash:', error);
+        console.error('Error moving mail to trash', error);
       }
     });
   }
@@ -814,49 +974,7 @@ export class Inbox {
 
   }
 
-  // // Reply mail
-  // replyMail(mail: Mail): void {
-
-  //   const currentUser = this.mailService.getCurrentUser();
-
-  //   if (!currentUser) {
-  //     return;
-  //   }
-
-  //   // const threadId = mail.threadId || `thread-${mail.id}`
-
-  //   const dialogRef = this.dialog.open(ComposeDialog, {
-  //     width: '550px',
-  //     maxWidth: '95vw',
-  //     position: {
-  //       bottom: '0',
-  //       right: '40px'
-  //     },
-  //     panelClass: 'compose-dialog-panel',
-  //     data: {
-  //       mode: 'reply',
-
-  //       from: currentUser.email,
-
-  //       to: mail.from === currentUser.email ? mail.to : mail.from, //reply goes to the sender
-
-  //       subject: mail.subject.startsWith('Re:') ? mail.subject : `Re: ${mail.subject}`,
-
-  //       body: '',
-
-  //       threadId: mail.threadId,
-
-  //       replyToId: mail.id
-  //     }
-  //   });
-
-  //   dialogRef.afterClosed().subscribe(result => {
-  //     if (result) {
-  //       this.refresh();
-  //     }
-  //   });
-  // }
-
+  // Reply mail
   replyMail(mail: Mail): void {
 
     const currentUser = this.mailService.getCurrentUser();
@@ -865,66 +983,74 @@ export class Inbox {
       return;
     }
 
-    // Make sure the conversation has a thread ID.
-    const threadId = mail.threadId || `thread-${mail.id}`;
+    const onReplyDialog = (threadId: string): void => {
+      const recipient =
+        mail.from === currentUser.email
+          ? mail.to
+          : mail.from;
 
-    const recipient =
-      mail.from === currentUser.email
-        ? mail.to
-        : mail.from;
+      const subject = mail.subject?.startsWith('Re:')
+        ? mail.subject
+        : `Re: ${mail.subject}`;
 
-    const subject = mail.subject?.startsWith('Re:')
-      ? mail.subject
-      : `Re: ${mail.subject}`;
+      const dialogRef = this.dialog.open(ComposeDialog, {
+        width: '550px',
+        maxWidth: '95vw',
 
-    const dialogRef = this.dialog.open(ComposeDialog, {
+        position: {
+          bottom: '20px',
+          right: '40px'
+        },
 
-      width: '550px',
-      maxWidth: '95vw',
+        panelClass: 'compose-dialog-panel',
 
-      position: {
-        bottom: '20px',
-        right: '40px'
+        data: {
+          mode: 'reply',
+          from: currentUser.email,
+          to: recipient,
+          subject: subject,
+          body: '',
+          threadId: threadId,
+
+          // message being replied to
+          replyToId: mail.id
+        }
+      });
+
+      dialogRef.afterClosed().subscribe(result => {
+        if (result?.sent) {
+          this.refresh();
+        }
+      });
+    };
+
+    // existing conversation
+    if (mail.threadId) {
+      onReplyDialog(mail.threadId);
+      return;
+    }
+
+    this.mailService.ensureThreadId(mail).subscribe({
+      next: (updatedMail) => {
+        mail.threadId = updatedMail.threadId;
+
+        // now opens reply dialog
+        onReplyDialog(updatedMail.threadId!);
       },
-
-      panelClass: 'compose-dialog-panel',
-
-      data: {
-        mode: 'reply',
-
-        from: currentUser.email,
-
-        to: recipient,
-
-        subject: subject,
-
-        body: '',
-
-        // VERY IMPORTANT
-        threadId: threadId,
-
-        // Keep reference to message being replied to
-        replyToId: mail.id
+      error: (error) => {
+        console.error('Error creating converstaion thread', error);
+        this.snackBar.open('Unable to start conversation', 'Close', {
+          duration: 3000
+        });
       }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-
-      if (result?.sent) {
-
-        // Reload the conversation
-        this.openMail(mail);
-
-        // Also refresh the list if necessary
-        this.refresh();
-      }
-
-    });
+    })
   }
 
   // Forward mail
   forwardMail(): void {
-    if (!this.selectedMail) {
+    const mailToForward =  this.selectedMail;
+
+    if (!mailToForward) {
       return;
     }
 
@@ -935,13 +1061,15 @@ export class Inbox {
     }
 
     const forwardedBody = `
-    Forwarded Message
+    --------- Forwarded Message ---------
 
-    From: ${this.selectedMail.from}
-    To: ${this.selectedMail.to}
-    Date: ${this.selectedMail.date}
-    Subject: ${this.selectedMail.subject}
-    ${this.selectedMail.body}
+    From: ${this.getUserFullName(mailToForward.from)} <${mailToForward.from}>
+    To: ${this.getUserFullName(mailToForward.to)} <${mailToForward.to}>
+    Date: ${new Date(mailToForward.date).toLocaleString()}
+    Subject: ${mailToForward.subject || '(no subject)'}
+    ${mailToForward.body}
+
+    ------------------------------------
     `;
 
     const dialogRef = this.dialog.open(ComposeDialog, {
@@ -954,21 +1082,22 @@ export class Inbox {
       panelClass: 'compose-dialog-panel',
 
       data: {
+        mode: 'forward',
         from: currentUser.email,
-
-        // Forward has no predefined recipient
         to: '',
-
-        subject: this.selectedMail.subject.startsWith('Fwd:')
-          ? this.selectedMail.subject
-          : `Fwd: ${this.selectedMail.subject}`,
-
-        body: forwardedBody
+        subject: mailToForward.subject?.startsWith('Fwd:')
+          ? mailToForward.subject
+          : `Fwd: ${mailToForward.subject || '(no subject)'}`,
+        body: forwardedBody,
+        threadId: undefined,
+        attachment: mailToForward.attachment
+          ? { ...mailToForward.attachment }
+          : undefined
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+      if (result?.sent) {
         this.refresh();
       }
     })

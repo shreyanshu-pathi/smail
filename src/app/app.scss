@@ -1,159 +1,126 @@
-// replace 
-// <mat-checkbox
-//   [checked]="allSelected"
-//   (change)="toggleSelectAll($event.checked)"
-//   matTooltip="Select">
-// </mat-checkbox>
+// // Forward mail
+// forwardMail(message?: Mail): void {
+//   const mailToForward = message ?? this.selectedMail;
 
-// 2. Add a checkbox to every mail
-// Wherever you display each mail in your inbox.html, add
-// <mat-checkbox
-//   [(ngModel)]="mail.selected"
-//   (click)="$event.stopPropagation()"
-//   (change)="updateSelectAllState()"
-//   matTooltip="Select mail">
-// </mat-checkbox>
-
-// <div
-//   class="mail-row"
-//   *ngFor="let mail of mails"
-//   (click)="openMail(mail)">
-
-//   <mat-checkbox
-//     [(ngModel)]="mail.selected"
-//     (click)="$event.stopPropagation()"
-//     (change)="updateSelectAllState()">
-//   </mat-checkbox>
-
-//   <!-- rest of your mail -->
-// </div>
-
-// // Controls the main checkbox
-// allSelected = false;
-
-
-// // Select / deselect all mails using the main checkbox
-// toggleSelectAll(checked: boolean): void {
-
-//   this.allSelected = checked;
-
-//   this.mails.forEach(mail => {
-//     mail.selected = checked;
-//   });
-// }
-
-
-// // Select all mails
-// selectAll(): void {
-
-//   this.mails.forEach(mail => {
-//     mail.selected = true;
-//   });
-
-//   this.allSelected = true;
-// }
-
-
-// // Select no mails
-// selectNone(): void {
-
-//   this.mails.forEach(mail => {
-//     mail.selected = false;
-//   });
-
-//   this.allSelected = false;
-// }
-
-
-// // Select only read mails
-// selectRead(): void {
-
-//   this.mails.forEach(mail => {
-//     mail.selected = mail.read === true;
-//   });
-
-//   this.updateSelectAllState();
-// }
-
-
-// // Select only unread mails
-// selectUnread(): void {
-
-//   this.mails.forEach(mail => {
-//     mail.selected = mail.read !== true;
-//   });
-
-//   this.updateSelectAllState();
-// }
-
-
-// // Select only starred mails
-// selectStarred(): void {
-
-//   this.mails.forEach(mail => {
-//     mail.selected = mail.starred === true;
-//   });
-
-//   this.updateSelectAllState();
-// }
-
-
-// // Select only unstarred mails
-// selectUnstarred(): void {
-
-//   this.mails.forEach(mail => {
-//     mail.selected = mail.starred !== true;
-//   });
-
-//   this.updateSelectAllState();
-// }
-
-
-// // Update main checkbox according to individual mail selection
-// updateSelectAllState(): void {
-
-//   if (this.mails.length === 0) {
-//     this.allSelected = false;
+//   if (!mailToForward) {
 //     return;
 //   }
 
-//   this.allSelected = this.mails.every(mail => mail.selected === true);
-// }
+//   const currentUser = this.mailService.getCurrentUser();
 
-
-// change addmailstobeginnign
-// addMailsToBeginning(mails: Mail[]): void {
-
-//   this.allMails = [];
-
-//   this.mails = mails.map(mail => ({
-//     ...mail,
-//     selected: false
-//   }));
-
-//   this.allSelected = false;
-
-//   if (this.searchText.trim()) {
-//     this.searchMails();
+//   if (!currentUser) {
+//     return;
 //   }
+
+//   // Gmail-style forwarded message
+//   const forwardedBody = `
+// ---------- Forwarded message ---------
+// From: ${this.getUserFullName(mailToForward.from)} <${mailToForward.from}>
+// Date: ${new Date(mailToForward.date).toLocaleString()}
+// Subject: ${mailToForward.subject || '(no subject)'}
+// To: ${this.getUserFullName(mailToForward.to)} <${mailToForward.to}>
+
+// ${mailToForward.body}
+// --------------------------------------
+// `;
+
+//   const dialogRef = this.dialog.open(ComposeDialog, {
+//     width: '550px',
+//     maxWidth: '95vw',
+
+//     position: {
+//       bottom: '20px',
+//       right: '40px'
+//     },
+
+//     panelClass: 'compose-dialog-panel',
+
+//     data: {
+//       mode: 'forward',
+
+//       // Current logged-in user
+//       from: currentUser.email,
+
+//       // Gmail leaves recipient empty when forwarding
+//       to: '',
+
+//       // Forwarded subject
+//       subject: mailToForward.subject?.startsWith('Fwd:')
+//         ? mailToForward.subject
+//         : `Fwd: ${mailToForward.subject || '(no subject)'}`,
+
+//       // Original message
+//       body: forwardedBody,
+
+//       // IMPORTANT:
+//       // Do NOT pass threadId.
+//       // Forward should create a new conversation.
+//       threadId: undefined,
+
+//       // Forwarded attachment
+//       attachment: mailToForward.attachment
+//         ? { ...mailToForward.attachment }
+//         : undefined
+//     }
+//   });
+
+//   dialogRef.afterClosed().subscribe(result => {
+//     if (result?.sent) {
+//       this.refresh();
+//     }
+//   });
 // }
 
-// if you want newest mailat the top
-// addMailsToBeginning(mails: Mail[]): void {
+// change it to 
+// <button
+//     mat-stroked-button
+//     (click)="forwardMail(conversation[conversation.length - 1])">
+//     <mat-icon>forward</mat-icon>
+//     Forward
+// </button>
 
-//   this.allMails = [];
+// composedialog constructor
+// constructor() {
 
-//   this.mails = mails
-//     .slice()
-//     .reverse()
-//     .map(mail => ({
-//       ...mail,
-//       selected: false
-//     }));
+//   this.composeForm = this.fb.group({
+//     to: ['', Validators.required],
+//     subject: ['', Validators.required],
+//     body: ['', Validators.required]
+//   });
 
-//   this.allSelected = false;
+//   // Existing draft
+//   if (this.data?.mode === 'draft') {
+//     this.isDraft = true;
 
-//   if (this.searchText.trim()) {
-//     this.searchMails();
+//     this.composeForm.patchValue({
+//       to: this.data.to || '',
+//       subject: this.data.subject || '',
+//       body: this.data.body || ''
+//     });
+//   }
+
+//   // Reply
+//   if (this.data?.mode === 'reply') {
+//     this.composeForm.patchValue({
+//       to: this.data.to || '',
+//       subject: this.data.subject || '',
+//       body: this.data.body || ''
+//     });
+//   }
+
+//   // Forward
+//   if (this.data?.mode === 'forward') {
+//     this.composeForm.patchValue({
+//       to: '',
+//       subject: this.data.subject || '',
+//       body: this.data.body || ''
+//     });
+
+//     // Copy original attachment
+//     if (this.data.attachment) {
+//       this.attachmentName = this.data.attachment.name;
+//       this.attachmentType = this.data.attachment.type;
+//       this.attachmentData = this.data.attachment.data;
+//     }
 //   }
 // }

@@ -1,8 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { map, Observable, of, switchMap } from 'rxjs';
 import { Mail, User } from './model';
-import { M } from '@angular/cdk/keycodes';
 
 @Injectable({
   providedIn: 'root',
@@ -124,33 +123,53 @@ export class MailService {
   //send mails to user
   sendMail(mail: Mail): Observable<Mail> {
 
-  const promotion = this.isPromotion(mail);
-  const social = !promotion && this.isSocial(mail);
-  const update = !promotion && !social && this.isUpdate(mail);
+    const promotion = this.isPromotion(mail);
+    const social = !promotion && this.isSocial(mail);
+    const update = !promotion && !social && this.isUpdate(mail);
 
-  const newMail: Mail = {
-    ...mail,
+    const newMail: Mail = {
+      ...mail,
 
-    // Reply uses existing threadId n New mail gets a new threadId.
-    threadId: mail.threadId || this.generateThreadId(),
+      // Reply uses existing threadId n New mail gets a new threadId.
+      threadId: mail.threadId || this.generateThreadId(),
 
-    promotion,
-    social,
-    updates: update,
+      promotion,
+      social,
+      updates: update,
 
-    draft: false,
-    trash: false,
-    spam: false,
-    archived: false,
+      draft: false,
+      trash: false,
+      spam: false,
+      archived: false,
 
-    date: mail.date || new Date().toISOString()
-  };
+      date: mail.date || new Date().toISOString()
+    };
 
-  return this.http.post<Mail>(this.mailApiUrl, newMail);
-}
+    return this.http.post<Mail>(this.mailApiUrl, newMail);
+  }
 
+  // generates threads
   private generateThreadId(): string {
     return 'thread-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
+  }
+
+  // make sure that an existing mail belongs to a converstaion
+  ensureThreadId(mail: Mail): Observable<Mail> {
+
+    // already belongs to thread
+    if (mail.threadId) {
+      return of(mail);
+    }
+
+    // create a new thread id for original message
+    const threadId = this.generateThreadId();
+
+    return this.http.patch<Mail>(
+      `${this.mailApiUrl}/${mail.id}`,
+      {
+        threadId: threadId
+      }
+    )
   }
 
   // get conversation mails
@@ -287,6 +306,14 @@ export class MailService {
   getTrashMails(email: string): Observable<Mail[]> {
     return this.http.get<Mail[]>(
       `${this.mailApiUrl}?trash=true`
+    ).pipe(
+      map((mails: Mail[]) =>
+        mails.filter(mail =>
+          mail.trash === true && (
+            mail.to === email || mail.from === email
+          )
+        )
+      )
     );
   }
 
@@ -398,25 +425,34 @@ export class MailService {
     )
   }
 
-  // email change
-  // canChangeEmail(user: User): boolean {
-  //   const currentYear = new Date().getFullYear();
+  // undo from trash
+  undoTrash(mail: Mail): Observable<Mail> {
+    return this.http.patch<Mail>(
+      `${this.mailApiUrl}/${mail.id}`,
+      {
+        trash: false
+      }
+    );
+  }
 
-  //   // Maximum 2 times changes per year
-  //   if ((user.emailChangeCount ?? 0) >= 2) {
-  //     return false;
-  //   }
+  // undo from archive
+  undoArchive(mail: Mail): Observable<Mail> {
+    return this.http.patch<Mail>(
+      `${this.mailApiUrl}/${mail.id}`,
+      {
+        archive: false
+      }
+    );
+  }
 
-  //   // 1 hour window option
-  //   if (user.emailChangeExpiresAt) {
-  //     const expiresAt = new Date(user.emailChangeExpiresAt).getTime();
-  //     const now = Date.now();
-  //     if (now < expiresAt) {
-  //       return true;
-  //     }
-  //   }
-  //   return true;
-  // }
+  // undo from spam
+  undoSpam(mail: Mail): Observable<Mail> {
+    return this.http.patch<Mail>(
+      `${this.mailApiUrl}/${mail.id}`, {
+      spam: false
+    }
+    );
+  }
 
   startEmailChangeWindow(user: User): Observable<User> {
     const now = new Date();
@@ -438,33 +474,6 @@ export class MailService {
     }
     )
   }
-  // // Email changing
-  // changeEmail(user: User, newEmail: string): Observable<User> {
-  //   const currentYear = new Date().getFullYear();
-  //   const count = user.emailChangeCount ?? 0;
-
-  //   const currentCount = user.emailChangeYear === currentYear ? count : 0;
-
-  //   // Check yearly limit
-  //   if (currentCount >= 2) {
-  //     throw new Error('You have reached the maximum of 2 email changes for this year.');
-  //   }
-
-  //   // checks one hour window
-  //   if (!user.emailChangeExpiresAt || Date.now() > new Date(user.emailChangeExpiresAt).getTime()) {
-  //     throw new Error('Your 1-hour email change window has expired.');
-  //   }
-
-  //   const newCount = currentCount + 1;
-
-  //   return this.updateUser(user.id!, {
-  //     email: newEmail,
-  //     emailChangeCount: newCount,
-  //     emailChangeYear: currentYear,
-  //     emailChangeStartedAt: null,
-  //     emailChangeExpiresAt: null
-  //   });
-  // }
 
   // logout
   logout() {
