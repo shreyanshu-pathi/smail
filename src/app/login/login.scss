@@ -207,3 +207,19 @@
     }
   }
 }
+
+.signin {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+
+  .forgotEmail {
+    color: #0b57d0;
+    cursor: pointer;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}

@@ -1,0 +1,52 @@
+<div class="help-container">
+
+    <!-- header -->
+    <div class="help-header">
+
+        <h2>Help</h2>
+
+        <button mat-icon-button matTooltip="Close" (click)="closeDialog()">
+            <mat-icon>close</mat-icon>
+        </button>
+        
+    </div>
+
+    <!-- content -->
+    <div class="help-content">
+
+        <div class="help-item">
+            <div class="help-icon">
+                <mat-icon>article</mat-icon>
+            </div>
+
+            <span>Change or reset your password</span>
+        </div>
+
+        <div class="help-item">
+            <div class="help-icon">
+                <mat-icon>article</mat-icon>
+            </div>
+
+            <span>Contact us</span>
+        </div>
+
+
+        <div class="help-item">
+            <div class="help-icon">
+                <mat-icon>article</mat-icon>
+            </div>
+
+            <span (click)="signup()">Create a Smail account</span>
+        </div>
+
+        <div class="help-item">  
+            <div class="help-icon">
+                <mat-icon>article</mat-icon>
+            </div>
+
+            <span (click)="signIn()">Sign into Smail</span>
+        </div>
+
+    </div>
+
+</div>

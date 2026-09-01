@@ -1,0 +1,117 @@
+.forgot-email-dialog {
+    padding: 28px 30px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.forgot-header {
+    text-align: center;
+    margin-bottom: 28px;
+
+    .icon-wrapper {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #f1f3f4;
+
+        mat-icon {
+            font-size: 28px;
+            width: 28px;
+            height: 28px;
+        }
+    }
+
+    h2 {
+        margin: 0 0 10px;
+        font-size: 24px;
+        font-weight: 500;
+    }
+
+    p {
+        margin: 0 auto;
+        max-width: 360px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #5f6368;
+    }
+}
+
+.full-width {
+    width: 100%;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 18px;
+
+    button {
+        min-width: 90px;
+        border-radius: 20px;
+    }
+}
+
+.email-result {
+    text-align: center;
+    padding: 5px 0 8px;
+
+    .success-icon {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #e8f5e9;
+
+        mat-icon {
+            font-size: 32px;
+            width: 32px;
+            height: 32px;
+        }
+    }
+
+    h3 {
+        margin: 0 0 10px;
+        font-size: 20px;
+        font-weight: 500;
+    }
+
+    p {
+        margin: 0 0 14px;
+        font-size: 14px;
+        color: #5f6368;
+    }
+}
+
+.recovery-email {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 13px 16px;
+    margin: 0 auto;
+    max-width: 330px;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    background: #f8f9fa;
+
+    mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+    }
+
+    span {
+        font-size: 15px;
+        font-weight: 500;
+        word-break: break-word;
+    }
+}

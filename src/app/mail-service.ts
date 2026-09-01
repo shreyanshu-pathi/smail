@@ -187,28 +187,31 @@ export class MailService {
     return this.http.get<Mail[]>(this.mailApiUrl);
   }
 
-  // get mails by thread(conversation)
-  // getMailsByThread(threadId: string) {
-  //   return this.http.get<Mail[]>(`${this.mailApiUrl}/mails?threadId=${threadId}`)
-  // }
-
   //Inbox mail
   getInboxMails(email: string): Observable<Mail[]> {
-    return this.http.get<Mail[]>(
-      `${this.mailApiUrl}?to=${encodeURIComponent(email)}&trash=false`
-    ).pipe(
-      map((mails: Mail[]) =>
-        mails.filter(mail =>
-          mail.to === email &&
-          mail.draft !== true &&
-          mail.spam !== true &&
-          mail.snoozed !== true &&
-          mail.archived !== true &&
-          mail.trash !== true &&
-          mail.promotion !== true &&
-          mail.social !== true &&
-          mail.updates !== true
-        )
+    return this.http.get<Mail[]>(this.mailApiUrl).pipe(
+      map(mails =>
+        mails.filter(mail => {
+
+          // recieves inbox mails
+          const isReceivedMail = mail.to?.toLowerCase() === email.toLowerCase();
+
+          // failed outgoing mail when address is not found
+          const isFailedOutgoingMail = mail.from?.toLowerCase() === email.toLowerCase() &&
+            mail.deliveryFailed === true;
+
+          return (
+            (isReceivedMail || isFailedOutgoingMail) &&
+            mail.draft !== true &&
+            mail.spam !== true &&
+            mail.snoozed !== true &&
+            mail.archived !== true &&
+            mail.trash !== true &&
+            mail.promotion !== true &&
+            mail.social !== true && 
+            mail.updates !== true
+          )
+        })
       )
     );
   }

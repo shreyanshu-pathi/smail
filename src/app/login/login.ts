@@ -14,8 +14,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { MailService } from '../mail-service';
+import { Forgotemaildialog } from '../forgotemaildialog/forgotemaildialog';
 import { Forgotpassworddialog } from '../forgotpassworddialog/forgotpassworddialog';
 import { MatDialog } from '@angular/material/dialog';
+import * as bcrypt from 'bcryptjs';
 
 @Component({
   selector: 'app-login',
@@ -53,10 +55,10 @@ export class Login {
   }
 
   // stays logged in 
-  ngOnInit(){
+  ngOnInit() {
     const loggedInUser = this.mailService.getCurrentUser();
 
-    if(loggedInUser){
+    if (loggedInUser) {
       this.router.navigate(['/inbox'], {
         replaceUrl: true
       });
@@ -122,13 +124,30 @@ export class Login {
     }
 
     const password = passwordControl?.value;
+    if (!this.currentUser) {
+      return;
+    }
 
-    if (password !== this.currentUser.password) {
-      this.snackBar.open('Incorrect password', 'Close',
-        {
-          duration: 3000
-        }
+    let isPasswordCorrect = false;
+
+    if (
+      this.currentUser.password.startsWith('$2a$') ||
+      this.currentUser.password.startsWith('$2b$') ||
+      this.currentUser.password.startsWith('$2y$')
+    ) {
+      isPasswordCorrect = bcrypt.compareSync(
+        password,
+        this.currentUser.password
       );
+    } else {
+      // Existing users with existing passwords
+      isPasswordCorrect = password === this.currentUser.password;
+    }
+
+    if (!isPasswordCorrect) {
+      this.snackBar.open('Incorrect password', 'Close', {
+        duration: 3000
+      });
       return;
     }
 
@@ -136,8 +155,8 @@ export class Login {
     this.mailService.setCurrentUser(this.currentUser);
 
     // Navigate to inbox
-    this.router.navigate(['/inbox'], 
-      {replaceUrl: true}
+    this.router.navigate(['/inbox'],
+      { replaceUrl: true }
     );
   }
 
@@ -145,6 +164,14 @@ export class Login {
   backToEmail(): void {
     this.loginStage = 'email';
     this.loginForm.get('password')?.reset();
+  }
+
+  // forgot email
+  onForgotEmail(): void {
+    this.dialog.open(Forgotemaildialog, {
+      width: '600px',
+      // maxWidth: '95vw'
+    });
   }
 
   // forgot password

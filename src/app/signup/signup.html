@@ -131,6 +131,7 @@
                         <mat-radio-button value="Male"> Male </mat-radio-button>
                         <mat-radio-button value="Female"> Female </mat-radio-button>
                         <mat-radio-button value="Other"> Other </mat-radio-button>
+                        <mat-radio-button value="Rather not say"> Rather not say </mat-radio-button>
                     </mat-radio-group>
 
                     @if (signupForm.controls['gender'].hasError('required') && signupForm.controls['gender'].touched) {
@@ -211,7 +212,7 @@
                 <mat-form-field appearance="outline" class="full-width">
 
                     <mat-label>Email</mat-label>
-                    <input matInput type="email" formControlName="email" (input)="onEmailChange()" placeholder="yourname@smail.com">
+                    <input matInput type="email" formControlName="email" (input)="onEmailChange()" placeholder="username@smail.com">
                     <mat-icon matSuffix>mail_outline</mat-icon>
                     @if (signupForm.controls['email'].hasError('required') && signupForm.controls['email'].touched) {
                     <mat-error> Email is required </mat-error>

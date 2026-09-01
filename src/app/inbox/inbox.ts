@@ -18,6 +18,7 @@ import { MatSnackBar, MatSnackBarModule, MatSnackBarRef } from '@angular/materia
 
 import { MatDividerModule } from '@angular/material/divider';
 import { SnoozeDialog } from '../snooze-dialog/snooze-dialog';
+import { HelpDialog } from '../help-dialog/help-dialog';
 
 @Component({
   selector: 'app-inbox',
@@ -154,7 +155,7 @@ export class Inbox {
   // Sending email to multiple users
   sendMultipleUsers(mailData: any): void {
 
-    if (!mailData || mailData.to) {
+    if (!mailData || !mailData.to) {
       this.snackBar.open('Please enter atleast one recipient', 'Close', { duration: 3000 });
       return;
     }
@@ -964,6 +965,28 @@ export class Inbox {
     });
   }
 
+  // from trash back to inbox
+  moveTrashToInbox(mail: Mail): void {
+    this.mailService.undoTrash(mail).subscribe({
+      next: () => {
+        this.snackBar.open('Mail moved to Inbox', 'Close', {
+          duration: 3000
+        });
+
+        this.selectedMail = null;
+        this.conversation = [];
+
+        this.loadInboxMails();
+      },
+      error: (error) => {
+        console.error('Error moving mail to Inbox:', error);
+        this.snackBar.open('Failed to move mail to Inbox', 'Close', {
+          duration: 3000
+        });
+      }
+    })
+  }
+
   // Report problem
   reportPromotion(): void {
 
@@ -1048,7 +1071,7 @@ export class Inbox {
 
   // Forward mail
   forwardMail(): void {
-    const mailToForward =  this.selectedMail;
+    const mailToForward = this.selectedMail;
 
     if (!mailToForward) {
       return;
@@ -1090,9 +1113,7 @@ export class Inbox {
           : `Fwd: ${mailToForward.subject || '(no subject)'}`,
         body: forwardedBody,
         threadId: undefined,
-        attachment: mailToForward.attachment
-          ? { ...mailToForward.attachment }
-          : undefined
+        attachment: mailToForward.attachment ? { ...mailToForward.attachment } : undefined
       }
     });
 
@@ -1212,7 +1233,7 @@ export class Inbox {
   }
 
   // Load draft count
-  loadDraftCount() {
+  loadDraftCount(): void {
     const currentUser = this.mailService.getCurrentUser();
     if (!currentUser) {
       this.draftCount = 0
@@ -1227,7 +1248,16 @@ export class Inbox {
         console.error('Error loading draft count:', error);
         this.draftCount = 0;
       }
-    })
+    });
+  }
+
+  // Help
+  openHelpModal(): void {
+    const dialogRef = this.dialog.open(HelpDialog, {
+      width: '500px',
+      height: '400px',
+      disableClose: true
+    });
   }
 
   // logout

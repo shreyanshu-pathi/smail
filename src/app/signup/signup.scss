@@ -187,8 +187,7 @@
 
         mat-radio-group {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            grid-template-columns: repeat(4, -2fr);
             width: 100%;
         }
 

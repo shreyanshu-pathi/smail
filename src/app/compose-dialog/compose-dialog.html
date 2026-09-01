@@ -4,14 +4,23 @@
     <div class="compose-header">
         <span>New Message</span>
 
-        <button mat-icon-button type="button" matTooltip="Close" (click)="closeDialog()">
-            <mat-icon>close</mat-icon>
-        </button>
+        <div class="compose-header-actions">
+            <button mat-icon-button type="button" [matTooltip]="isMinimized? 'Restore' : 'Minimize'"
+                (click)="toggleMinimize()">
+                <mat-icon>{{isMinimized? 'expand_less': 'remove'}}</mat-icon>
+            </button>
+
+            <button mat-icon-button type="button" matTooltip="Close" (click)="closeDialog()">
+                <mat-icon>close</mat-icon>
+            </button>
+        </div>
     </div>
 
     <!-- Form -->
+      @if(!isMinimized){
     <form [formGroup]="composeForm">
 
+        
         <!-- From -->
         <mat-form-field appearance="outline" class="full-width">
             <mat-label>From</mat-label>
@@ -28,9 +37,6 @@
             }
             @if(composeForm.controls['to'].hasError('invalidEmail')&& composeForm.controls['to'].touched){
             <mat-error>Invalid email address</mat-error>
-            }
-            @if(composeForm.controls['to'].hasError('userNotFound')&& composeForm.controls['to'].touched){
-            <mat-error>User not found</mat-error>
             }
         </mat-form-field>
 
@@ -75,13 +81,11 @@
                 <button mat-icon-button type="button" matTooltip="Files" (click)="fileInput.click()">
                     <mat-icon>attach_file</mat-icon>
                 </button>
-
-                <button mat-icon-button type="button" matTooltip="Discard" mat-dialog-close>
-                    <mat-icon>delete_outline</mat-icon>
-                </button>
             </div>
 
         </div>
+    
     </form>
+      }
 
 </div>

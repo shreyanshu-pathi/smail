@@ -36,12 +36,15 @@ export interface Mail {
     replyToId?: number;
 
     attachment?: {
-        name: string;
-        type: string;
-        data: string;
+        name:string,
+        type: string,
+        data: string
     };
 
     promotion?: boolean;
     social?: boolean;
     updates?: boolean;
+
+    deliveryFailed? : boolean;
+    deliveryError?: string;
 }  

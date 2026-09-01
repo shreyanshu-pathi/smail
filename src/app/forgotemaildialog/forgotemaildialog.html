@@ -1,0 +1,68 @@
+<div class="forgot-email-dialog">
+
+    <!-- Header -->
+    <div class="forgot-header">
+
+        <div class="icon-wrapper">
+            <mat-icon>mail_outline</mat-icon>
+        </div>
+
+        <h2>Forgot email?</h2>
+        
+        <p>Enter your phone number associated with your Smail account to find your smail address</p>
+
+    </div>
+
+    @if(!emailFound) {
+    <form [formGroup]="forgotEmailForm">
+
+        <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Phone number</mat-label>
+            <input matInput type="tel" maxlength="10" formControlName="phone" placeholder="Enter your phone number">
+            <mat-icon matSuffix>phone</mat-icon>
+
+            @if(forgotEmailForm.controls['phone'].hasError('required') &&
+            forgotEmailForm.controls['phone'].touched){
+            <mat-error>Phone number is required</mat-error>
+            }
+            @if(forgotEmailForm.controls['phone'].hasError('pattern') &&
+            forgotEmailForm.controls['phone'].touched){
+            <mat-error>Enter a valid 10 digit number</mat-error>
+            }
+        </mat-form-field>
+
+        <div class="dialog-actions">
+            <button mat-button type="button" (click)="close()">Cancel</button>
+
+            <button mat-button type="button" (click)="findEmail()">Find email</button>
+        </div>
+
+    </form>
+    }
+
+    @else {
+    <div class="email-result">
+
+        <div class="success-icon">
+            <mat-icon>check_circle</mat-icon>
+        </div>
+
+        <h3>Found your Smail account</h3>
+
+        <p>Your Smail address is:</p>
+
+        <div class="recovery-email">
+            <mat-icon>mail</mat-icon>
+            <span>{{recoveredEmail}}</span>
+        </div>
+
+        <div class="dialog-actions">
+
+            <button matButton="filled" type="button" (click)="close()">
+                Done
+            </button>
+
+        </div>
+    </div>
+    }
+</div>

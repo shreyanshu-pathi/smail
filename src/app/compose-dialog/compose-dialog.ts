@@ -22,6 +22,9 @@ export class ComposeDialog {
   snackBar = inject(MatSnackBar);
   mailService = inject(MailService);
 
+  isMinimized: boolean = false;
+  isMaximized: boolean = false;
+
   dialogRef = inject(MatDialogRef<ComposeDialog>);
   data = inject(MAT_DIALOG_DATA);
 
@@ -57,10 +60,24 @@ export class ComposeDialog {
     // If this is a reply
     if (this.data?.mode === 'reply') {
       this.composeForm.patchValue({
-        to: this.data.to,
-        subject: this.data.subject,
-        body: this.data.body
+        to: this.data.to || '',
+        subject: this.data.subject || '',
+        body: this.data.body || ''
       });
+    }
+
+    if (this.data?.mode === 'forward') {
+      this.composeForm.patchValue({
+        to: '',
+        subject: this.data.subject || '',
+        body: this.data.body || ''
+      });
+
+      if (this.data.attachment) {
+        this.attachmentName = this.data.attachment.name;
+        this.attachmentData = this.data.attachment.data;
+        this.attachmentType = this.data.attachment.type;
+      }
     }
   }
 
@@ -103,21 +120,15 @@ export class ComposeDialog {
       return;
     }
 
-    // Check registered users
+    // get registered users
     this.mailService.getUsers().subscribe({
       next: (users) => {
 
-        const invalidRecipients = recipients.filter(
-          (email: string) => !users.some(user => user.email.toLowerCase() === email.toLowerCase())
-        );
+        const registeredRecipients = recipients.filter(
+          (email: string) => users.some(user => user.email.toLowerCase() === email.toLowerCase()));
 
-        if (invalidRecipients.length > 0) {
-          toControl?.setErrors({
-            userNotFound: true
-          });
-          toControl?.markAsTouched();
-          return;
-        }
+        const invalidRecipients = recipients.filter(
+          (email: string) => !users.some(user => user.email.toLowerCase() === email.toLowerCase()));
 
         let sentCount = 0;
 
@@ -137,6 +148,12 @@ export class ComposeDialog {
             draft: false,
             spam: false,
             archived: false,
+
+            deliveryFailed: invalidRecipients.some(
+              email => email.toLowerCase() === recipient.toLowerCase()),
+
+            deliveryError: invalidRecipients.some(
+              email => email.toLowerCase() === recipient.toLowerCase()) ? 'Address not found' : undefined,
 
             // Reply keeps original thread
             threadId: this.data.mode === 'reply' ? this.data.threadId : undefined,
@@ -173,38 +190,27 @@ export class ComposeDialog {
 
               // Close only after successful send
               if (sentCount === recipients.length) {
-                this.snackBar.open('Email sent', 'Close',
-                  {
-                    duration: 3000
-                  }
-                );
-
+                this.snackBar.open('Email sent', 'Close', {
+                  duration: 3000
+                });
                 this.dialogRef.close({
                   sent: true
                 });
               }
-
             },
 
             error: (error) => {
               console.error('Error sending email:', error);
-              this.snackBar.open('Email not sent', 'Close',
-                {
-                  duration: 3000
-                }
-              );
-
+              this.snackBar.open('Email not sent', 'Close', {
+                duration: 3000
+              });
             }
-
           });
-
         });
-
       },
 
       error: (error) => {
         console.error('Error getting users:', error);
-
         this.snackBar.open('Unable to verify recipient', 'Close',
           {
             duration: 3000
@@ -270,11 +276,35 @@ export class ComposeDialog {
     this.attachmentType = '';
   }
 
+  toggleMinimize(): void {
+    if (this.isMinimized) {
+      this.isMinimized = false;
+
+      this.dialogRef.updateSize('550px', 'auto');
+
+      this.dialogRef.updatePosition({
+        bottom: '20px',
+        right: '40px'
+      });
+    } else {
+      this.isMinimized = true;
+      this.isMaximized = false;
+
+      this.dialogRef.updateSize('550px', '50px');
+
+      this.dialogRef.updatePosition({
+        bottom: '20px',
+        right: '40px'
+      });
+    }
+  }
+
   // close the compose dialog
   closeDialog(): void {
     this.saveDraft();
   }
 
+  // save draft when clicked on close button
   saveDraft(): void {
     const formValue = this.composeForm.value;
 
@@ -282,11 +312,6 @@ export class ComposeDialog {
     if (!currentUser) {
       return;
     }
-
-    // if (!formValue.to && !formValue.subject && !formValue.body) {
-    //   this.dialogRef.close();
-    //   return;
-    // }
 
     const draft: Mail = {
       id: this.data?.id,

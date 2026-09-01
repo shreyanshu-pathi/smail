@@ -31,9 +31,9 @@
                 </button>
                 }
 
-                <button mat-icon-button type="button" matTooltip="Show search options">
+                <!-- <button mat-icon-button type="button" matTooltip="Show search options">
                     <mat-icon>tune</mat-icon>
-                </button>
+                </button> -->
 
             </div>
 
@@ -84,9 +84,15 @@
 
         <!-- right panel -->
         <div class="header-right">
-            <button mat-icon-button matTooltip="Support">
+            <button mat-icon-button matTooltip="Support" [matMenuTriggerFor]="supportMenu">
                 <mat-icon>help_outline</mat-icon>
             </button>
+
+            <mat-menu #supportMenu="matMenu">
+                <button mat-menu-item (click)="openHelpModal()">
+                    <span>Help</span>
+                </button>
+            </mat-menu>
 
             <button mat-icon-button matTooltip="Settings">
                 <mat-icon>settings</mat-icon>
@@ -127,27 +133,32 @@
             <!-- Navigation -->
             <nav class="mail-navigation">
 
-                <div class="nav-item" (click)="selectTab('Primary')" matTooltip="Inbox">
+                <div class="nav-item" [class.active]="selectedTab === 'Primary'" (click)="selectTab('Primary')"
+                    matTooltip="Inbox">
                     <mat-icon>inbox</mat-icon>
                     <span>Inbox</span>
                 </div>
 
-                <div class="nav-item" (click)="selectTab('Starred')" matTooltip="Starred">
+                <div class="nav-item" [class.active]="selectedTab === 'Starred'" (click)="selectTab('Starred')"
+                    matTooltip="Starred">
                     <mat-icon>star_border</mat-icon>
                     <span>Starred</span>
                 </div>
 
-                <div class="nav-item" (click)="selectTab('Snoozed')" matTooltip="Snoozed">
+                <div class="nav-item" [class.active]="selectedTab === 'Snoozed'" (click)="selectTab('Snoozed')"
+                    matTooltip="Snoozed">
                     <mat-icon>snooze</mat-icon>
                     <span>Snoozed</span>
                 </div>
 
-                <div class="nav-item" (click)="selectTab('Sent')" matTooltip="Sent">
+                <div class="nav-item" [class.active]="selectedTab === 'Sent'" (click)="selectTab('Sent')"
+                    matTooltip="Sent">
                     <mat-icon>send</mat-icon>
                     <span>Sent</span>
                 </div>
 
-                <div class="nav-item" (click)="selectTab('Drafts')" matTooltip="Drafts">
+                <div class="nav-item" [class.active]="selectedTab === 'Drafts'" (click)="selectTab('Drafts')"
+                    matTooltip="Drafts">
                     <mat-icon>drafts</mat-icon>
                     <span>Drafts</span>
                     @if(draftCount > 0) {
@@ -155,22 +166,26 @@
                     }
                 </div>
 
-                <div class="nav-item" (click)="selectTab('All Mails')" matTooltip="All Mails">
+                <div class="nav-item" [class.active]="selectedTab === 'All Mails'" (click)="selectTab('All Mails')"
+                    matTooltip="All Mails">
                     <mat-icon>email</mat-icon>
                     <span>All Mails</span>
                 </div>
 
-                <div class="nav-item" (click)="selectTab('Spam')" matTooltip="Spam">
+                <div class="nav-item" [class.active]="selectedTab === 'Spam'" (click)="selectTab('Spam')"
+                    matTooltip="Spam">
                     <mat-icon>report</mat-icon>
                     <span>Spam</span>
                 </div>
 
-                <div class="nav-item" (click)="selectTab('Archive')" matTooltip="Archive">
+                <div class="nav-item" [class.active]="selectedTab === 'Archive'" (click)="selectTab('Archive')"
+                    matTooltip="Archive">
                     <mat-icon>archive</mat-icon>
                     <span>Archive</span>
                 </div>
 
-                <div class="nav-item" (click)="selectTab('Trash')" matTooltip="Trash">
+                <div class="nav-item" [class.active]="selectedTab === 'Trash'" (click)="selectTab('Trash')"
+                    matTooltip="Trash">
                     <mat-icon>delete_outline</mat-icon>
                     <span>Trash</span>
                 </div>
@@ -211,7 +226,6 @@
                             class="select-dropdown-btn">
                             <mat-icon>arrow_drop_down</mat-icon>
                         </button>
-
                     </div>
 
                     <!-- Dropdown menu -->
@@ -349,11 +363,18 @@
                             {{ mail.subject.trim() ? mail.subject : '(no subject)' }}
                         </span>
 
-                        <span class="dash"> -</span>
+                        <span class="dash"> - </span>
 
+                        @if(mail.deliveryFailed){
+                        <span class="mail-preview delivery-failed-preview">
+                            Address Not Found - Your message wasn't delivered to
+                            {{mail.to}} because the address couldn't be found.
+                        </span>
+                        } @else {
                         <span class="mail-preview">
                             {{ mail.body }}
                         </span>
+                        }
 
                     </div>
 
@@ -393,7 +414,7 @@
                     <!-- Snooze -->
                     <button mat-icon-button class="delete-button" matTooltip="Snooze" [matMenuTriggerFor]="snoozeMenu"
                         (click)="$event.stopPropagation()">
-                        <mat-icon> snooze</mat-icon>
+                        <mat-icon>snooze</mat-icon>
                     </button>
 
                     <mat-menu #snoozeMenu="matMenu">
@@ -407,7 +428,6 @@
                             <span>
                                 Tomorrow <strong>9:00 AM</strong>
                             </span>
-
                         </button>
 
                         <button mat-menu-item (click)="snoozeWeekend(mail)">
@@ -460,21 +480,13 @@
                     <div class="detail-toolbar-left">
 
                         <button mat-icon-button matTooltip="Back" (click)="closeMail()">
-
-                            <mat-icon>
-                                arrow_back
-                            </mat-icon>
-
+                            <mat-icon> arrow_back</mat-icon>
                         </button>
 
                         @if (selectedTab === 'Spam' && selectedMail.spam === true) {
-
                         <button mat-stroked-button class="not-spam" (click)="removeSpam(selectedMail)">
-
                             Not spam
-
                         </button>
-
                         }
 
                     </div>
@@ -485,67 +497,67 @@
                         <!-- Archive -->
                         <button mat-icon-button matTooltip="Archive"
                             (click)="archiveMail(selectedMail); $event.stopPropagation()">
-
-                            <mat-icon>
-                                archive
-                            </mat-icon>
-
+                            <mat-icon> archive </mat-icon>
                         </button>
-
 
                         <!-- Report Spam -->
                         <button mat-icon-button matTooltip="Report spam"
                             (click)="markAsSpam(selectedMail); $event.stopPropagation()">
-
-                            <mat-icon>
-                                report
-                            </mat-icon>
+                            <mat-icon> report </mat-icon>
 
                         </button>
-
 
                         <!-- Mark unread -->
                         <button mat-icon-button matTooltip="Mark as unread"
                             (click)="markAsUnreadMail(selectedMail); $event.stopPropagation()">
-
-                            <mat-icon>
-                                mark_as_unread
-                            </mat-icon>
+                            <mat-icon> mark_as_unread </mat-icon>
 
                         </button>
 
+                        @if (selectedTab === 'Trash') {
+                        <button mat-icon-button matTooltip="Move to Inbox"
+                            (click)="moveTrashToInbox(selectedMail); $event.stopPropagation()">
+                            <mat-icon>move_to_inbox</mat-icon>
+                        </button>
+                        }
 
                         <!-- Move to Inbox -->
+                        @if(selectedTab === 'Archive'){
                         <button mat-icon-button matTooltip="Move to Inbox"
                             (click)="unarchiveMail(selectedMail); $event.stopPropagation()">
-
-                            <mat-icon>
-                                move_to_inbox
-                            </mat-icon>
-
+                            <mat-icon> move_to_inbox</mat-icon>
                         </button>
+                        } @else {
+                        <button mat-icon-button matTooltip="Archive"
+                            (click)="archiveMail(selectedMail); $event.stopPropagation()">
+                            <mat-icon> archive </mat-icon>
+                        </button>
+                        }
 
 
                         <!-- Delete -->
                         <button mat-icon-button matTooltip="Delete"
                             (click)="deleteOpenedMail(); $event.stopPropagation()">
-
-                            <mat-icon>
-                                delete_outline
-                            </mat-icon>
-
+                            <mat-icon> delete_outline</mat-icon>
                         </button>
 
 
                         <!-- More -->
-                        <button mat-icon-button matTooltip="More">
-
-                            <mat-icon>
-                                more_vert
-                            </mat-icon>
-
+                        <button mat-icon-button matTooltip="More" [matMenuTriggerFor]="additionalMenu">
+                            <mat-icon>more_vert</mat-icon>
                         </button>
 
+                        <mat-menu #additionalMenu="matMenu">
+                            <button mat-menu-item>
+                                <mat-icon>snooze</mat-icon>
+                                <span>Snooze</span>
+                            </button>
+
+                            <button mat-menu-item>
+                                <mat-icon>star</mat-icon>
+                                <span>Starred</span>
+                            </button>
+                        </mat-menu>
                     </div>
 
                 </div>
@@ -553,13 +565,9 @@
 
                 <!-- Subject -->
                 <div class="mail-detail-subject">
-
                     <h2>
-                        {{ selectedMail.subject.trim()
-                        ? selectedMail.subject
-                        : '(no subject)' }}
+                        {{ selectedMail.subject.trim() ? selectedMail.subject : '(no subject)' }}
                     </h2>
-
                 </div>
 
                 <!-- Conversation -->
@@ -618,19 +626,85 @@
                                 }
 
                                 <!-- More -->
-                                <button mat-icon-button matTooltip="More">
+                                <button mat-icon-button matTooltip="More" [matMenuTriggerFor]="moreMenu">
                                     <mat-icon> more_vert </mat-icon>
                                 </button>
+
+                                <mat-menu #moreMenu="matMenu">
+                                    <button mat-menu-item (click)="replyMail(message); $event.stopPropagation()">
+                                        <mat-icon>reply</mat-icon>
+                                        <span>Reply</span>
+                                    </button>
+
+                                    <button mat-menu-item (click)="forwardMail(); $event.stopPropagation()">
+                                        <mat-icon>forward</mat-icon>
+                                        <span>Forward</span>
+                                    </button>
+
+                                    <button mat-menu-item (click)="markAsSpam(selectedMail); $event.stopPropagation()">
+                                        <mat-icon>report</mat-icon>
+                                        <span>Report spam</span>
+                                    </button>
+
+                                    <button mat-menu-item (click)="deleteOpenedMail(); $event.stopPropagation()">
+                                        <mat-icon>delete</mat-icon>
+                                        <span>Delete</span>
+                                    </button>
+
+                                    <button mat-menu-item
+                                        (click)="markAsUnreadMail(selectedMail); $event.stopPropagation()">
+                                        <mat-icon>mark_as_unread</mat-icon>
+                                        <span>Mark as unread</span>
+                                    </button>
+                                </mat-menu>
 
                             </div>
 
                         </div>
 
                         <!-- Message body -->
+                        @if (message.deliveryFailed) {
+                        <div class="delivery-error">
+                            <div class="delivery-error-title">
+                                <mat-icon>error</mat-icon>
+                                <strong>Address Not Found</strong>
+                            </div>
+
+                            <div class="delivery-error-message">
+                                <p>Your message wasn't delivered to
+                                    <strong>{{message.to}}</strong>
+                                    because the address couldn't be found.
+                                </p>
+                            </div>
+                        </div>
+                        }
                         <div class="mail-body">
                             <p>
                                 {{ message.body }}
                             </p>
+
+                            <!-- Attachment -->
+                            @if (message.attachment) {
+                            <div class="mail-attachment">
+
+                                <!-- Image preview -->
+                                @if(message.attachment.type?.startsWith('image/')){
+                                <div class="attachment-preview">
+                                    <img [src]="message.attachment.data" [alt]="message.attachment.name"
+                                        class="attachment-image">
+                                </div>
+                                }
+
+                                <!-- Attachment informaiton -->
+                                <div class="attachment-info">
+
+                                    <div class="attachment-details">
+                                        <span class="attachment-name">{{message.attachment.name}}</span>
+                                        <span class="attachment-type">{{message.attachment.type}}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            }
                         </div>
 
                     </div>
@@ -644,11 +718,11 @@
 
                         <button mat-stroked-button
                             (click)="replyMail(conversation[conversation.length - 1]); $event.stopPropagation()">
-                            <mat-icon> reply </mat-icon>
+                            <mat-icon>reply</mat-icon>
                             Reply
                         </button>
 
-                        <button mat-stroked-button (click)="forwardMail()">
+                        <button mat-stroked-button (click)="forwardMail(); $event.stopPropagation()">
                             <mat-icon> forward </mat-icon>
                             Forward
                         </button>

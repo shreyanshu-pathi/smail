@@ -10,6 +10,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router, RouterLink } from '@angular/router';
 import { User } from '../model';
 import { MailService } from '../mail-service';
+import * as bcrypt from 'bcryptjs';
 
 @Component({
   selector: 'app-signup',
@@ -171,25 +172,23 @@ export class Signup {
       this.mailService.getUserByEmail(mainEmail).subscribe({
 
         next: (users) => {
-
-          // generate mails whther user exists or  not
-          this.generateEmailSuggestions(username);
-
           if (users.length > 0) {
             this.snackBar.open('Email already exists. Please choose another email', 'Close', {
               duration: 3000
             });
 
+            this.generateEmailSuggestions(username);
             return;
           }
-          // email is available
+
+          //  email is available
           emailControl.setValue(mainEmail);
 
           this.emailSuggestions = [];
 
           this.signupStage = 'password';
         },
-        error: (error) => {
+        error: () => {
           this.snackBar.open('Unable to check email availability', 'Close', {
             duration: 3000
           });
@@ -221,6 +220,7 @@ export class Signup {
       `${username}01@smail.com`
     ];
 
+    // clears old suggestions
     this.emailSuggestions = [];
 
     suggestions.forEach(email => {
@@ -246,7 +246,20 @@ export class Signup {
   }
 
   onEmailChange(): void {
+    const emailControl = this.signupForm.controls['email'];
+    let username = emailControl.value?.trim().toLowerCase() || '';
+
     this.emailSuggestionSelected = false;
+
+    // Remove @smail.com if the user types it
+    username.replace(/@smail\.com$/i, '');
+
+    // suggestion won't be shown for empty and very short input
+    if (!username || username.length < 2) {
+      this.emailSuggestions = [];
+    }
+
+    this.generateEmailSuggestions(username);
   }
 
   // Back button
@@ -293,6 +306,8 @@ export class Signup {
 
     const formValue = this.signupForm.value;
 
+    const hashedPassword = bcrypt.hashSync(formValue.password, 10)
+
     const user: User = {
       fname: formValue.fname,
       lname: formValue.lname,
@@ -300,7 +315,7 @@ export class Signup {
       phone: formValue.phone,
       dob: formValue.dob,
       gender: formValue.gender,
-      password: formValue.password
+      password: hashedPassword
     };
 
     // Check if email already exists
@@ -323,13 +338,9 @@ export class Signup {
 
           next: () => {
 
-            this.snackBar.open(
-              'Registration successful',
-              'Close',
-              {
-                duration: 3000
-              }
-            );
+            this.snackBar.open('Registration successful', 'Close', {
+              duration: 3000
+            });
 
             this.mailService.setCurrentUser(user);
 
@@ -340,32 +351,20 @@ export class Signup {
 
             console.error('Error creating user', error);
 
-            this.snackBar.open(
-              'Unable to create account',
-              'Close',
-              {
-                duration: 3000
-              }
-            );
+            this.snackBar.open('Unable to create account', 'Close', {
+              duration: 3000
+            });
           }
-
         });
-
       },
 
       error: (error) => {
 
         console.error('Error checking email', error);
-
-        this.snackBar.open(
-          'Unable to check email availability',
-          'Close',
-          {
-            duration: 3000
-          }
-        );
+        this.snackBar.open('Unable to check email availability', 'Close', {
+          duration: 3000
+        });
       }
-
     });
   }
 }
