@@ -57,7 +57,7 @@
 
                 <!-- Login Link -->
                 <div class="login-link">
-                    <p>Already a member? <span routerLink="/login">Login</span></p>
+                    <p>Already a member? <span class="account" routerLink="/login">Login</span></p>
                 </div>
 
                 <!-- Next button -->
@@ -86,8 +86,8 @@
                 <mat-form-field appearance="outline" class="full-width">
 
                     <mat-label>Date of birth</mat-label>
-                    <input matInput [matDatepicker]="picker" formControlName="dob"
-                        placeholder="Choose your date of birth">
+                    <input matInput [matDatepicker]="picker" formControlName="dob" placeholder="DD/MM/YYYY"
+                        maxlength="10" (input)="formatDob($event)" (keydown)="allowDateInput($event)">
                     <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
                     <mat-datepicker #picker></mat-datepicker>
                     @if (signupForm.controls['dob'].hasError('required') && signupForm.controls['dob'].touched) {
@@ -212,13 +212,17 @@
                 <mat-form-field appearance="outline" class="full-width">
 
                     <mat-label>Email</mat-label>
-                    <input matInput type="email" formControlName="email" (input)="onEmailChange()" placeholder="username@smail.com">
+                    <input matInput type="email" formControlName="email" (input)="onEmailChange()"
+                        placeholder="username@smail.com">
                     <mat-icon matSuffix>mail_outline</mat-icon>
                     @if (signupForm.controls['email'].hasError('required') && signupForm.controls['email'].touched) {
                     <mat-error> Email is required </mat-error>
                     }
                     @if (signupForm.controls['email'].hasError('pattern') && signupForm.controls['email'].touched) {
                     <mat-error>Use only characters, numbers and spl. characters like ($*_-.)</mat-error>
+                    }
+                    @if (signupForm.controls['email'].hasError('emailExists') && signupForm.controls['email'].touched) {
+                    <mat-error>This email is already registered</mat-error>
                     }
 
                 </mat-form-field>

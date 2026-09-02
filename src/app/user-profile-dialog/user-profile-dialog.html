@@ -1,5 +1,37 @@
 <h2>User Profile</h2>
 
+<!-- Profile picture -->
+<div class="profile-picture-section">
+
+    <div class="profile-picture-container">
+
+        @if(data.profileImage){
+        <img [src]="data.profileImage" alt="Profile picture" class="profile-picture">
+        } @else {
+        <div class="profile-placeholder">
+            <mat-icon>person</mat-icon>
+        </div>
+        }
+
+        <button mat-mini-fab type="button" class="upload-btn" (click)="fileInput.click()">
+            <mat-icon>add</mat-icon>
+        </button>
+
+        <input #fileInput type="file" accept="image/*" hidden (change)="onProfilePictureSelected($event)">
+
+        @if(data.profileImage){
+        <button type="button" class="remove-photo" (click)="removeProfilePicture()">
+            Remove Photo
+        </button>
+        }
+    </div>
+
+    <div></div>
+
+</div>
+
+
+<!-- Input fields -->
 <mat-dialog-content>
 
     <mat-form-field appearance="outline" class="full-width">
@@ -24,7 +56,7 @@
 
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Email</mat-label>
-        <input matInput type="email" [(ngModel)]="data.email" >
+        <input matInput type="email" [(ngModel)]="data.email">
 
         @if(emailEditing){
         <mat-hint>

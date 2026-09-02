@@ -7,6 +7,7 @@ export interface User {
     gender: string;
     password: string;
     phone?: string;
+    profileImage?: string | null;
 
     // email change
     emailLastChangedAt?: string | null;

@@ -138,22 +138,31 @@ export class Signup {
     else if (this.signupStage === 'email') {
       const emailControl = this.signupForm.controls['email'];
 
-      if (emailControl.invalid) {
-        emailControl.markAsTouched();
-        return;
-      }
-
       // default @smail.com
-      let username = emailControl.value.trim().toLowerCase();
+      let username = emailControl.value?.trim().toLowerCase() || '';
 
       // removes the smail if user types
       username = username.replace(/@smail\.com$/i, '');
 
       // username not be empty
       if (!username) {
+        emailControl.setValue('');
+        emailControl.setErrors({ required: true });
         emailControl.markAsTouched();
         return;
       }
+
+      const usernamePattern = /^[a-zA-Z0-9._-]+$/;
+      if (!usernamePattern.test(username)) {
+        emailControl.setErrors({ pattern: true });
+        emailControl.markAsTouched();
+        return;
+      }
+
+      // if (emailControl.invalid) {
+      //   emailControl.markAsTouched();
+      //   return;
+      // }
 
       //  creates @smail.com
       const mainEmail = `${username}@smail.com`;
@@ -161,10 +170,12 @@ export class Signup {
       // checks whether user chose from the suggestions
       if (this.emailSuggestionSelected) {
         emailControl.setValue(mainEmail);
+        emailControl.setErrors(null);
+        emailControl.markAsUntouched();
 
         this.emailSuggestions = [];
-
         this.signupStage = 'password';
+
         return;
       }
 
@@ -173,6 +184,10 @@ export class Signup {
 
         next: (users) => {
           if (users.length > 0) {
+            emailControl.setErrors({
+              emailExists: true
+            });
+            emailControl.markAsTouched();
             this.snackBar.open('Email already exists. Please choose another email', 'Close', {
               duration: 3000
             });
@@ -181,8 +196,12 @@ export class Signup {
             return;
           }
 
-          //  email is available
+          // custom email is available
           emailControl.setValue(mainEmail);
+
+          // Clear any previous validation errors
+          emailControl.setErrors(null);
+          emailControl.markAsUntouched();
 
           this.emailSuggestions = [];
 
@@ -208,6 +227,39 @@ export class Signup {
       }
       this.submitForm();
     }
+  }
+
+  // Dob 
+  allowDateInput(event: KeyboardEvent): void {
+    const allowedKeys = [
+      'Backspace', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'
+    ]
+
+    if (allowedKeys.includes(event.key)) {
+      return;
+    }
+
+    if (!/^\d$/.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  // format for dob
+  formatDob(event: Event): void {
+    const input = event.target as HTMLInputElement;
+
+    // remove anything which is not a number
+    let value = input.value.replace(/\D/g, '');
+
+    value = value.substring(0, 8);
+
+    // add those
+    if (value.length > 4) {
+      value = value.substring(0, 2) + '/' + value.substring(2, 4) + '/' + value.substring(4);
+    } else if (value.length > 2) {
+      value = value.substring(0, 2) + '/' + value.substring(2);
+    }
+    input.value = value;
   }
 
   // Email Suggestions
@@ -245,14 +297,21 @@ export class Signup {
     this.signupStage = 'password';
   }
 
+  // email change
   onEmailChange(): void {
     const emailControl = this.signupForm.controls['email'];
+
     let username = emailControl.value?.trim().toLowerCase() || '';
 
     this.emailSuggestionSelected = false;
 
     // Remove @smail.com if the user types it
-    username.replace(/@smail\.com$/i, '');
+    username = username.replace(/@smail\.com$/i, '');
+
+    // updates the value without validation that is not required
+    if (emailControl.value !== username && emailControl.value?.toLowerCase().endsWith('@smail.com')) {
+      emailControl.setValue(username, { emitEvent: false });
+    }
 
     // suggestion won't be shown for empty and very short input
     if (!username || username.length < 2) {
@@ -282,6 +341,18 @@ export class Signup {
 
     else if (this.signupStage === 'password') {
       this.signupStage = 'email';
+
+      const emailControl = this.signupForm.controls['email'];
+
+      emailControl.setErrors(null);
+      emailControl.markAsUntouched();
+      emailControl.markAsPristine();
+
+      // Clear old suggestions
+      this.emailSuggestions = [];
+
+      // user can edit email again
+      this.emailSuggestionSelected = false;
     }
   }
 
@@ -320,37 +391,27 @@ export class Signup {
 
     // Check if email already exists
     this.mailService.getUserByEmail(user.email).subscribe({
-
       next: (users) => {
-
         if (users.length > 0) {
-
-          this.snackBar.open('Email already registered', 'Close',
-            {
-              duration: 3000
-            }
-          );
+          this.snackBar.open('Email already registered', 'Close', {
+            duration: 3000
+          });
           return;
         }
 
         // Create account only after all validation passes
         this.mailService.addUser(user).subscribe({
-
           next: () => {
-
             this.snackBar.open('Registration successful', 'Close', {
               duration: 3000
             });
 
             this.mailService.setCurrentUser(user);
-
             this.router.navigate(['/inbox']);
           },
 
           error: (error) => {
-
             console.error('Error creating user', error);
-
             this.snackBar.open('Unable to create account', 'Close', {
               duration: 3000
             });
@@ -359,7 +420,6 @@ export class Signup {
       },
 
       error: (error) => {
-
         console.error('Error checking email', error);
         this.snackBar.open('Unable to check email availability', 'Close', {
           duration: 3000

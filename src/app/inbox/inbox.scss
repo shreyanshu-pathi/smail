@@ -34,10 +34,16 @@
         align-items: center;
 
         h1 {
-            font-size: 28px;
-            color: grey;
-            font-weight: 300;
+            font-size: 30px;
+            color: #0a5ee6;
+            font-weight: 700;
             cursor: pointer;
+            transition: color 0.3s ease;
+            font-family: ui-sans-serif;
+
+            &:hover {
+                transform: scale(1.1);
+            }
         }
     }
 }
@@ -259,6 +265,14 @@
             font-size: 16px;
             font-weight: 600;
         }
+
+        .label-list {
+            .label-item {
+                display: flex;
+                align-items: center;
+                gap: 18px;
+            }
+        }
     }
 
     // mail content
@@ -372,12 +386,12 @@
     color: #202124;
     font-size: 14px;
     transition: box-shadow 0.1s;
-}
 
-.mail-row:hover {
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
-    position: relative;
-    z-index: 1;
+    &:hover {
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+        position: relative;
+        z-index: 1;
+    }
 }
 
 .mail-row.unread {
@@ -744,7 +758,7 @@
     border-top: 1px solid #dadce0;
 }
 
-.attachment-info > mat-icon {
+.attachment-info>mat-icon {
     font-size: 22px;
     width: 22px;
     height: 22px;

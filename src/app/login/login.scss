@@ -91,7 +91,9 @@
   }
 
   .account {
+    color: #0b57d0;
     cursor: pointer;
+    font-weight: 500;
 
     &:hover {
       color: #360dec;
@@ -219,6 +221,7 @@
     font-weight: 500;
 
     &:hover {
+      color: #360dec;
       text-decoration: underline;
     }
   }

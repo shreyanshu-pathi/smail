@@ -78,9 +78,12 @@ export class MailService {
 
   // retrieves user by phone
   getUserByPhone(phone: string): Observable<User[]> {
-    return this.http.get<User[]>(
-      `${this.userApiUrl}?phone=${phone}`
-    )
+    const normalizedPhone = String(phone).replace(/\D/g, '');
+
+    return this.http.get<User[]>(this.userApiUrl).pipe(
+      map(users => users.filter(user => String(user.phone ?? '').replace(/\D/g, '') === normalizedPhone
+      ))
+    );
   }
 
   // retrieves user by email or phone
@@ -208,7 +211,7 @@ export class MailService {
             mail.archived !== true &&
             mail.trash !== true &&
             mail.promotion !== true &&
-            mail.social !== true && 
+            mail.social !== true &&
             mail.updates !== true
           )
         })
@@ -323,9 +326,9 @@ export class MailService {
   // read status  
   updateReadStatus(mail: Mail) {
     return this.http.patch<Mail>(
-      `http://localhost:3000/mails/${mail.id}`,
+      `${this.mailApiUrl}/${mail.id}`,
       {
-        read: true
+        read: mail.read
       }
     );
   }
@@ -443,7 +446,7 @@ export class MailService {
     return this.http.patch<Mail>(
       `${this.mailApiUrl}/${mail.id}`,
       {
-        archive: false
+        archived: false
       }
     );
   }

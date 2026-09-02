@@ -1,11 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatButtonModule } from "@angular/material/button";
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatMenuModule } from '@angular/material/menu';
 import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
@@ -14,17 +13,18 @@ import { MailService } from '../mail-service';
 import { Mail, User } from '../model';
 import { DatePipe } from '@angular/common';
 import { UserProfileDialog } from '../user-profile-dialog/user-profile-dialog';
-import { MatSnackBar, MatSnackBarModule, MatSnackBarRef } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { MatDividerModule } from '@angular/material/divider';
 import { SnoozeDialog } from '../snooze-dialog/snooze-dialog';
 import { HelpDialog } from '../help-dialog/help-dialog';
+import { CreateLabelDialog } from '../create-label-dialog/create-label-dialog';
 
 @Component({
   selector: 'app-inbox',
-  imports: [MatButtonModule, MatTooltipModule, MatIconModule, RouterLink, MatFormFieldModule,
-    MatCheckboxModule, MatPaginatorModule, MatMenuModule, FormsModule, DatePipe, MatSnackBarModule,
-    MatDividerModule, MatPaginatorModule],
+  imports: [MatButtonModule, MatTooltipModule, MatIconModule, MatFormFieldModule,
+    MatCheckboxModule, MatMenuModule, FormsModule, DatePipe, MatSnackBarModule,
+    MatDividerModule],
   templateUrl: './inbox.html',
   styleUrl: './inbox.scss',
 })
@@ -61,9 +61,187 @@ export class Inbox {
   draftCount = 0;
 
   ngOnInit(): void {
+    this.loadLabels();
     this.loadUsers();
     this.loadInboxMails();
     this.loadDraftCount();
+  }
+
+  // whn clicking on logo
+  gotoInbox(): void {
+    this.selectedMail = null;
+    this.conversation = [];
+    this.searchText = '';
+    this.filteredMails = [];
+    this.selectedTab = 'Primary';
+    this.loadInboxMails();
+    this.router.navigate(['/inbox']);
+  }
+
+  // labels storing in array
+  labels: { id: number; name: string }[] = [];
+
+  // load labels
+  loadLabels(): void {
+    const savedLabels = localStorage.getItem('smailLabels');
+    this.labels = savedLabels ? JSON.parse(savedLabels) : [];
+  }
+
+  // creates labels
+  openCreateLabelDialog(event: Event): void {
+    event.stopPropagation();
+
+    const dialogRef = this.dialog.open(CreateLabelDialog, {
+      width: '500px',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe((labelName: string | undefined) => {
+      if (!labelName?.trim()) {
+        return;
+      }
+
+      const name = labelName.trim();
+
+      const alreadyExists = this.labels.some(label => label.name.toLowerCase() === name.toLowerCase());
+
+      if (alreadyExists) {
+        this.snackBar.open('Label already exists', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
+
+      const newLabel = {
+        id: Date.now(),
+        name
+      };
+
+      this.labels.push(newLabel);
+
+      localStorage.setItem('smailLabels', JSON.stringify(this.labels));
+      this.snackBar.open(`Label "${name}" created`, 'Close', {
+        duration: 2000
+      });
+    });
+  }
+
+  // select label
+  selectLabel(labelName: string): void {
+    this.selectedMail = null;
+    this.conversation = [];
+
+    this.selectedTab = labelName;
+
+    // Get all mails
+    this.mailService.getMails().subscribe({
+      next: (mails) => {
+        const currentUser = this.mailService.getCurrentUser();
+
+        if (!currentUser) {
+          return;
+        }
+
+        const labelMails = mails.filter((mail: any) => {
+          const isUserMail =
+            mail.from === currentUser.email ||
+            mail.to === currentUser.email;
+
+          const isNotDeleted =
+            mail.trash !== true &&
+            mail.spam !== true;
+
+          const hasLabel =
+            Array.isArray(mail.labels) &&
+            mail.labels.includes(labelName);
+
+          return isUserMail && isNotDeleted && hasLabel;
+        });
+
+        this.mails = [];
+        this.addMailsToBeginning(labelMails);
+      },
+
+      error: (error) => {
+        console.error('Error loading label mails:', error);
+      }
+    });
+  }
+
+  activeLabel: any = null;
+
+  openLabelMenu(event: MouseEvent, label: any): void {
+    event.stopPropagation();
+    this.activeLabel = label;
+  }
+
+  // Edit label
+  editLabel(label: { id: number; name: string }): void {
+    if(!label){
+      return;
+    }
+    
+    const dialogRef = this.dialog.open(CreateLabelDialog, {
+      width: '500px',
+      disableClose: true,
+      data: {
+        mode: 'edit',
+        label: { ...label }
+      }
+    });
+
+    dialogRef.afterClosed().subscribe((newLabelName: string | undefined) => {
+      if (!newLabelName?.trim()) {
+        return;
+      }
+
+      const newName = newLabelName.trim();
+
+      const alreadyExists = this.labels.some(existingLabel => existingLabel.id !== label.id &&
+        existingLabel.name.toLowerCase() === newName.toLowerCase()
+      );
+
+      if (alreadyExists) {
+        this.snackBar.open('Label already exists', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
+
+      // update label
+      const oldName = label.name;
+      label.name = newName;
+
+      localStorage.setItem('smailLabels', JSON.stringify(this.labels));
+      this.snackBar.open('Label renamed', 'Close', {
+        duration: 3000
+      });
+      this.selectLabel(newName);
+    });
+  }
+
+  // Delete label
+  deleteLabel(label: { id: number; name: string }): void {
+    const index = this.labels.findIndex(exisitingLabel => exisitingLabel.id === label.id);
+
+    if (index === -1) {
+      return;
+    }
+    // Remove label from array
+    this.labels.splice(index, 1);
+
+    localStorage.setItem('smailLabels', JSON.stringify(this.labels));
+
+    // if currently in this label then return to inbox
+    if (this.selectedTab === label.name) {
+      this.selectedTab = 'Primary';
+      this.selectedMail = null;
+      this.conversation = [];
+      this.loadInboxMails();
+    }
+    this.snackBar.open('Label deleted', 'Close', {
+      duration: 3000
+    });
   }
 
   // load users
@@ -379,7 +557,7 @@ export class Inbox {
       this.allSelected = false;
       return;
     }
-    this.allSelected = this.mails.every(mail => { mail.selected === true });
+    this.allSelected = this.mails.every(mail => mail.selected === true);
   }
 
   // Mark all mails as read
@@ -412,6 +590,255 @@ export class Inbox {
     });
     this.snackBar.open('All mails are marked ass read', 'Close', {
       duration: 3000
+    });
+  }
+
+  // performing actions on all the selected mails at once
+  hasSelectedMails(): boolean {
+    return this.mails.some(mail => mail.selected === true);
+  }
+
+  // Move all mails to inbox from trsh
+  moveAllMailsToInbox(): void {
+    const selectedMails = this.mails.filter(mail => mail.selected);
+
+    if (selectedMails.length === 0) {
+      return;
+    }
+
+    selectedMails.forEach(mail => {
+      this.mailService.undoTrash(mail).subscribe({
+        next: () => {
+          mail.trash = false;
+        }
+      });
+    });
+
+    // removes from trash list
+    this.mails = this.mails.filter(mail => !mail.selected);
+    this.allSelected = false;
+
+    this.snackBar.open(`${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} moved to Inbox`, 'Close', {
+      duration: 3000
+    });
+  }
+
+  // checks whether all mails are read
+  areAllSelectedMailsRead(): boolean {
+    const selectedMails = this.mails.filter(mail => mail.selected === true);
+    return selectedMails.length > 0 && selectedMails.every(mail => mail.read === true);
+  }
+
+  // toggle between read and unread when in trash
+  toggleSelectedReadStatus() {
+    const selectedMails = this.mails.filter(mail => mail.selected === true);
+    if (selectedMails.length === 0) {
+      return;
+    }
+
+    const allRead = selectedMails.every(mail => mail.read === true);
+    selectedMails.forEach(mail => {
+      mail.read = !allRead;
+      this.mailService.updateReadStatus(mail).subscribe();
+    });
+  }
+
+  // clear selection of all the checked mails
+  clearSelection(): void {
+    this.mails.forEach(mail => { mail.selected = false });
+    this.allSelected = false;
+  }
+
+  // Archive all selected mails
+  archiveSelectedMails(): void {
+    const selectedMails = this.mails.filter(mail => mail.selected === true);
+
+    if (selectedMails.length === 0) {
+      return;
+    }
+
+    let completed = 0;
+    let failed = false;
+
+    selectedMails.forEach(mail => {
+      this.mailService.archiveMail(mail).subscribe({
+        next: () => {
+          completed++;
+          if (completed === selectedMails.length && !failed) {
+
+            // archives all mails 
+            this.mails = this.mails.filter(mail => !selectedMails.some(selected => selected.id === mail.id));
+            this.clearSelection();
+
+            this.snackBar.open(`${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} archived`,
+              'Close', {
+              duration: 3000
+            });
+          }
+        },
+        error: (error) => {
+          failed = true;
+          console.error('Error archiving mails', error);
+        }
+      })
+    })
+  }
+
+  // Delete all selected mails
+  deleteSelectedMails(): void {
+    const selectedMails = this.mails.filter(mail => mail.selected === true);
+
+    if (selectedMails.length === 0) {
+      return;
+    }
+
+    let completed = 0;
+    let failed = false;
+
+    selectedMails.forEach(mail => {
+      this.mailService.moveToTrash(mail).subscribe({
+        next: () => {
+          completed++;
+          if (completed === selectedMails.length && !failed) {
+
+            // deletes all mails 
+            this.mails = this.mails.filter(mail => !selectedMails.some(selected => selected.id === mail.id));
+            this.clearSelection();
+
+            const snackBarRef = this.snackBar.open(`${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} move to trash`,
+              'Undo', {
+              duration: 3000
+            });
+
+            // Undo all
+            snackBarRef.onAction().subscribe(() => {
+              let restored = 0;
+              selectedMails.forEach(mail => {
+                this.mailService.undoTrash(mail).subscribe({
+                  next: (restoredMail) => {
+                    restored++;
+                    this.mails.unshift({
+                      ...restoredMail,
+                      selected: false
+                    });
+                    if (restored === selectedMails.length) {
+                      this.snackBar.open(
+                        `${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} restored`, 'Close', {
+                        duration: 3000
+                      });
+                    }
+                  },
+                  error: (error) => {
+                    console.error('Error restoring mail', error);
+                  }
+                })
+              })
+            });
+          }
+        },
+        error: (error) => {
+          failed = true;
+          console.error('Error deleting mail', error);
+        }
+      })
+    })
+  }
+
+  // Report spam all selected mails
+  reportSpamSelectedMails(): void {
+
+    const selectedMails = this.mails.filter(
+      mail => mail.selected === true
+    );
+
+    if (selectedMails.length === 0) {
+      return;
+    }
+
+    let completed = 0;
+    let failed = false;
+
+    selectedMails.forEach(mail => {
+      this.mailService.markAsSpam(mail).subscribe({
+        next: () => {
+          completed++;
+          if (completed === selectedMails.length && !failed) {
+            this.mails = this.mails.filter(mail => !selectedMails.some(selected => selected.id === mail.id));
+            this.clearSelection();
+
+            const snackBarRef = this.snackBar.open(
+              `${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} moved to Spam`,
+              'Undo', {
+              duration: 5000
+            });
+
+            snackBarRef.onAction().subscribe(() => {
+              let restored = 0;
+              selectedMails.forEach(mail => {
+                this.mailService.undoSpam(mail).subscribe({
+                  next: (restoredMail) => {
+                    restored++;
+                    this.mails.unshift({
+                      ...restoredMail,
+                      selected: false
+                    });
+                    if (restored === selectedMails.length) {
+                      this.snackBar.open('Selected mails restored', 'Close', {
+                        duration: 3000
+                      });
+                    }
+                  },
+                  error: (error) => {
+                    console.error('Error undoing spam', error);
+                  }
+                });
+              });
+            });
+          }
+        },
+        error: (error) => {
+          failed = true;
+          console.error(`Error reporting mails as spam`, error);
+        }
+      });
+    });
+  }
+
+  // Mark as Read all selected mails
+  markSelectedMailsAsRead(): void {
+    const selectedMails = this.mails.filter(mail => mail.selected === true && mail.read !== true);
+
+    if (selectedMails.length === 0) {
+      this.snackBar.open(
+        'Selected mails are already read', 'Close', {
+        duration: 3000
+      });
+      return;
+    }
+
+    let completed = 0;
+
+    selectedMails.forEach(mail => {
+      const previousState = mail.read;
+
+      // reads all mails which immediately updates UI
+      mail.read = true;
+      this.mailService.updateReadStatus(mail).subscribe({
+        next: () => {
+          completed++;
+          if (completed === selectedMails.length) {
+            this.clearSelection();
+            this.snackBar.open(
+              `${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} marked as read`, 'Close', {
+              duration: 3000
+            });
+          }
+        },
+        error: (error) => {
+          console.error(`Failed to mark mail as read`, error);
+          mail.read = previousState;
+        }
+      });
     });
   }
 
@@ -663,7 +1090,7 @@ export class Inbox {
     const saveSnooze = (until: string): void => {
       this.mailService.snoozeMail(mail, until).subscribe({
         next: () => {
-          this.mails = this.mails.filter(m => m.id === mail.id);
+          this.mails = this.mails.filter(m => m.id !== mail.id);
           this.snackBar.open(`Email snoozed until ${new Date(until).toLocaleString()}`, 'Close', {
             duration: 3000
           });
@@ -724,9 +1151,12 @@ export class Inbox {
     const day = date.getDay();
 
     // Saturday = 6
-    const daysUntilSaturday = 6 - day;
+    let daysUntilSaturday = 6 - day;
+    if (daysUntilSaturday <= 0) {
+      daysUntilSaturday += 7;
+    }
     date.setDate(date.getDate() + daysUntilSaturday);
-    date.setHours(8, 0, 0, 0);
+    date.setHours(9, 0, 0, 0);
 
     this.snoozeMail(mail, date.toISOString());
   }
@@ -800,7 +1230,7 @@ export class Inbox {
       return;
     }
 
-    //
+    // checks fro prvevious state
     const previousState = mail.read;
     mail.read = true;
 
@@ -985,16 +1415,6 @@ export class Inbox {
         });
       }
     })
-  }
-
-  // Report problem
-  reportPromotion(): void {
-
-  }
-
-  // Block sender
-  blockSender(): void {
-
   }
 
   // Reply mail
