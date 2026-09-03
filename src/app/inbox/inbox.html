@@ -184,35 +184,45 @@
 
                 <div class="labels-header">
                     <span>Labels</span>
+
                     <button mat-icon-button matTooltip="Create new label" (click)="openCreateLabelDialog($event)">
                         <mat-icon>add</mat-icon>
                     </button>
                 </div>
 
                 <div class="label-list">
-                    @for(label of labels; track label.id){
+
+                    @for (label of labels; track label.id) {
+
                     <div class="label-item" (click)="selectLabel(label.name)">
                         <mat-icon>label_outline</mat-icon>
-                        <span>{{label.name}}</span>
+                        <span>{{ label.name }}</span>
 
-                        <!-- more menu -->
+                        <!-- More button -->
                         <button mat-icon-button class="label-more-btn" [matMenuTriggerFor]="labelMenu"
                             (click)="$event.stopPropagation()" matTooltip="More">
                             <mat-icon>more_vert</mat-icon>
                         </button>
+
                     </div>
 
                     <!-- Label menu -->
-                     <mat-menu #labelMenu="matMenu" (click)="editLabel(label)">
-                        <button mat-menu-item> 
+                    <mat-menu #labelMenu="matMenu">
+
+                        <!-- Edit -->
+                        <button mat-menu-item (click)="editLabel(label)">
                             <span>Edit Label</span>
                         </button>
 
+                        <!-- Delete -->
                         <button mat-menu-item (click)="deleteLabel(label)">
                             <span>Delete Label</span>
                         </button>
+
                     </mat-menu>
+
                     }
+
                 </div>
 
             </div>
@@ -298,7 +308,7 @@
                     </button>
 
                     <!-- Mark all mails as read/unread in trash -->
-                    <button mat-icon-button matTooltip="areAllSelectedMailsRead() ? 'Mark as unread' : 'Mark as read'"
+                    <button mat-icon-button [matTooltip]="areAllSelectedMailsRead() ? 'Mark as unread' : 'Mark as read'"
                         (click)="toggleSelectedReadStatus()">
                         <mat-icon>
                             {{ areAllSelectedMailsRead() ? 'mark_email_unread' : 'mark_email_read' }}
@@ -307,8 +317,11 @@
                     } @else {
 
                     <!-- archive selected -->
-                    <button mat-icon-button matTooltip="Archive" (click)="archiveSelectedMails()">
-                        <mat-icon>archive</mat-icon>
+                    <button mat-icon-button [matTooltip]="areAllSelectedMailsArchived() ? 'Move to inbox' : 'Archive'"
+                        (click)="toggleSelectedArchiveStatus()">
+                        <mat-icon>
+                            {{areAllSelectedMailsArchived() ? 'unarchive' : 'archive'}}
+                        </mat-icon>
                     </button>
 
                     <!-- delete selected -->
@@ -317,13 +330,19 @@
                     </button>
 
                     <!-- report spam selected -->
-                    <button mat-icon-button matTooltip="Report spam" (click)="reportSpamSelectedMails()">
-                        <mat-icon>report</mat-icon>
+                    <button mat-icon-button [matTooltip]="areAllSelectedMailsSpam() ? 'Not spam': 'spam'"
+                        (click)="toggleSelectedSpamStatus()">
+                        <mat-icon>
+                            {{ areAllSelectedMailsSpam() ? 'remove_circle_outline' : 'report' }}
+                        </mat-icon>
                     </button>
 
-                    <!-- mark as read selected -->
-                    <button mat-icon-button matTooltip="Mark as read" (click)="markSelectedMailsAsRead()">
-                        <mat-icon>mark_email_read</mat-icon>
+                    <!-- mark as read and unread for all the mails selected at once -->
+                    <button mat-icon-button [matTooltip]="areAllSelectedMailsRead() ? 'Mark as unread' : 'Mark as read'"
+                        (click)="toggleSelectedReadStatus()">
+                        <mat-icon>
+                            {{ areAllSelectedMailsRead() ? 'mark_email_unread' : 'mark_email_read' }}
+                        </mat-icon>
                     </button>
                     }
                     }

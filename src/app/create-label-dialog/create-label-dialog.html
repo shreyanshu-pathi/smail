@@ -1,17 +1,18 @@
-<h2>Create new label</h2>
+<h2>{{ isEditMode ? 'Edit label' : 'Create new label' }}</h2>
 
 <mat-dialog-content>
 
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Label Name</mat-label>
-        <input matInput [(ngModel)]="labelName" maxlength="50" placeholder="Enter label name">
+        <input matInput [(ngModel)]="labelName" maxlength="50" placeholder="Enter label name" 
+        (keyup.enter)="createLabel()">
     </mat-form-field>
 
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
     <button mat-button type="button" (click)="cancel()">
-        cancel
+        Cancel
     </button>
 
     <button mat-flat-button type="button" (click)="createLabel()" [disabled]="!labelName.trim()">

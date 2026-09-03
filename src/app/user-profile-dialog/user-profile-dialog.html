@@ -30,67 +30,76 @@
 
 </div>
 
-
 <!-- Input fields -->
 <mat-dialog-content>
 
+    <!-- name -->
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Name</mat-label>
         <input matInput [(ngModel)]="data.name">
     </mat-form-field>
 
+    <!-- date of birth -->
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Date of Birth</mat-label>
         <input matInput type="date" [(ngModel)]="data.dob">
     </mat-form-field>
 
-    <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Gender</mat-label>
-        <input matInput [(ngModel)]="data.gender">
-    </mat-form-field>
+    <!-- gender -->
+    <div class="gender-field">
+        <label>Gender</label>
 
+        <div class="gender-content">
+            <mat-radio-group [(ngModel)]="data.gender">
+                <mat-radio-button value="Male"> Male </mat-radio-button>
+                <mat-radio-button value="Female"> Female </mat-radio-button>
+                <mat-radio-button value="Other"> Other </mat-radio-button>
+                <mat-radio-button value="Rather not say"> Rather not say </mat-radio-button>
+            </mat-radio-group>
+        </div>
+
+    </div>
+
+    <!-- phone -->
     <mat-form-field appearance="outline" class="full-width">
         <mat-label>Phone</mat-label>
         <input matInput type="tel" maxlength="10" [(ngModel)]="data.phone">
     </mat-form-field>
 
+    <!-- email -->
     <mat-form-field appearance="outline" class="full-width">
+
         <mat-label>Email</mat-label>
-        <input matInput type="email" [(ngModel)]="data.email">
+        <input #emailInput matInput type="text" [(ngModel)]="emailUsername" [disabled]="!emailEditing"
+            placeholder="Enter smail address" (input)="onEmailUsernameChange()">
+        <span matTextSuffix>@smail.com</span>
 
         @if(emailEditing){
-        <mat-hint>
-            You have 1 hour to edit your existing email to a new email
-        </mat-hint>
+        <mat-hint>You have 1 hour to edit your existing email to a new email</mat-hint>
         }
+
     </mat-form-field>
 
     <!-- change of email -->
     @if(!emailEditing){
-    <div class="email-change-info">
-        @if(canChangeEmail){
-        <p>
-            You can change your email now.
-        </p>
+    <button mat-stroked-button type="button" (click)="startEmailChange(emailInput)" [disabled]="!canChangeEmail">
+        Change email
+    </button>
 
-        <button mat-stroked-button type="button" (click)="startEmailChange()">
-            Change email
-        </button>
-        } @else {
-        <p class="limit-message">
-            You have reached your email change limit for this year. Email can be changed again on
-            <strong>{{nextEmailChangeDate | date: 'dd/MM/yyyy'}}</strong>
-        </p>
-
-        <button mat-stroked-button type="button" disabled>
-            Change email
-        </button>
-        }
-    </div>
+    <!-- email enabled -->
+    @if(canChangeEmail){
+    <p> You can change your email now.</p>
+    }
+    @else {
+    <p class="limit-message">
+        You have reached your email change limit for this year. Email can be changed again on
+        <strong>{{nextEmailChangeDate | date: 'dd/MM/yyyy'}}</strong>
+    </p>
+    }
     }
 
     @if (emailEditing) {
-    <div class="email-timer">
+    <div class="email-change-info">
         <strong>Time remaining: {{timeRemaining}}</strong>
         <p>
             Save your new email before email expires.

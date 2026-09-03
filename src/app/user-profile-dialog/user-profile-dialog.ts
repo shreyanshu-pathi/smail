@@ -8,6 +8,7 @@ import { MailService } from '../mail-service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { DatePipe } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { MatRadioModule } from '@angular/material/radio';
 
 @Component({
   selector: 'app-user-profile-dialog',
@@ -19,19 +20,20 @@ import { MatIconModule } from '@angular/material/icon';
     FormsModule,
     MatSnackBarModule,
     DatePipe,
-    MatIconModule
+    MatIconModule, MatRadioModule
   ],
   templateUrl: './user-profile-dialog.html',
   styleUrl: './user-profile-dialog.scss',
 })
 export class UserProfileDialog {
 
-  emailEditing = false;
-  canChangeEmail = false;
+  emailUsername: string = '';
+  emailEditing: boolean = false;
+  canChangeEmail: boolean = false;
   nextEmailChangeDate: Date | null = null;
-  timeRemaining = '01:00:00';
+  timeRemaining: string = '01:00:00';
   private timer: any;
-  private originalEmail = '';
+  private originalEmail: string = '';
 
   constructor(
     public dialogRef: MatDialogRef<UserProfileDialog>,
@@ -43,7 +45,12 @@ export class UserProfileDialog {
 
   ngOnInit(): void {
     this.originalEmail = this.data.email;
+
+    // dob format
     this.data.dob = this.formatDobForInput(this.data.dob);
+
+    // email ending with @smail.com
+    this.emailUsername = this.data.email ? this.data.email.replace(/@smail\.com$/i, '') : '';
     this.checkEmailChangeStatus();
   }
 
@@ -91,60 +98,71 @@ export class UserProfileDialog {
     return date.toISOString().split('T')[0];
   }
 
-  // check existing email window
-  checkEmailChangeStatus(): void {
-    // if the user has never changed email, it lets you change
-    if (!this.data.emailLastChangedAt) {
-      this.canChangeEmail = true;
-      return;
-    }
-
-    const lastChanged = new Date(this.data.emailLastChangedAt);
-
-    // calculate 6 months from last successful change
-    const nextChange = new Date(lastChanged);
-    nextChange.setMonth(nextChange.getMonth() + 6);
-
-    this.nextEmailChangeDate = nextChange;
-
-    const now = Date.now();
-    const nextChangeTime = nextChange.getTime();
-
-    // 6 months completed
-    if (now >= nextChangeTime) {
-      this.canChangeEmail = true;
-    } else {
-      this.canChangeEmail = false;
-    }
-
-    // check if there is 1 hour active window
-    this.checkExistingEmailWindow();
+  // change of username only
+  onEmailUsernameChange() {
+    this.emailUsername = this.emailUsername.replace(/\s/g, '').replace(/@.*$/, '');
+    this.data.email = `${this.emailUsername}@smail.com`
   }
 
-  // within the 1 hour of time the dialog can be closed and opened which would still remain active
-  checkExistingEmailWindow() {
-    if (!this.data.emailChangeExpiresAt) {
-      return;
-    }
-
-    const expiresAt = new Date(this.data.emailChangeExpiresAt).getTime();
+  // check existing email window
+  checkEmailChangeStatus(): void {
 
     const now = Date.now();
 
-    if (now < expiresAt) {
-      this.emailEditing = true;
-      this.canChangeEmail = true;
-      this.startTimer(expiresAt);
-    }
-    else {
+    // check if an email change window is currently active
+    if (this.data.emailChangeExpiresAt) {
+      const expiresAt = new Date(this.data.emailChangeExpiresAt).getTime();
+
+      const startedAt = this.data.emailChangeStartedAt
+        ? new Date(this.data.emailChangeStartedAt).getTime()
+        : 0;
+
+      // Active 1-hour window
+      if (startedAt && now < expiresAt) {
+        this.emailEditing = true;
+        this.canChangeEmail = true;
+
+        this.emailUsername = this.data.email ? this.data.email.replace(/@smail\.com$/i, '') : '';
+
+        this.startTimer(expiresAt);
+        return;
+      }
+
+      // Window expired
       this.emailEditing = false;
+
       this.data.emailChangeStartedAt = null;
       this.data.emailChangeExpiresAt = null;
     }
+
+    // checks 6-month rvalidation(restrict)
+    if (this.data.emailLastChangedAt) {
+      const lastChanged = new Date(this.data.emailLastChangedAt);
+
+      const nextChange = new Date(lastChanged);
+
+      nextChange.setMonth(nextChange.getMonth() + 6);
+
+      this.nextEmailChangeDate = nextChange;
+
+      // Still inside 6-month restriction
+      if (now < nextChange.getTime()) {
+
+        this.canChangeEmail = false;
+        this.emailEditing = false;
+
+        this.stopTimer();
+        return;
+      }
+    }
+
+    // user has never changed email OR 6 months passed
+    this.canChangeEmail = true;
+    this.emailEditing = false;
   }
 
   // start email change for 1 hour
-  startEmailChange(): void {
+  startEmailChange(emailInput: HTMLInputElement): void {
     if (!this.canChangeEmail) {
       this.snackBar.open('You cannot change your email yet', 'Close', {
         duration: 3000
@@ -164,6 +182,9 @@ export class UserProfileDialog {
         this.data.emailChangeStartedAt = updatedUser.emailChangeStartedAt;
         this.data.emailChangeExpiresAt = updatedUser.emailChangeExpiresAt;
         this.emailEditing = true;
+        this.canChangeEmail = true;
+
+        this.emailUsername = updatedUser.email.replace(/@smail\.com$/i, '');
 
         const expiresAt = new Date(updatedUser.emailChangeExpiresAt!).getTime();
 
@@ -174,6 +195,11 @@ export class UserProfileDialog {
       },
       error: (error) => {
         console.error('Error starting email change', error);
+
+        this.emailEditing = false;
+        this.canChangeEmail = false;
+        emailInput.disabled = true;
+
         this.snackBar.open(error.message || 'Unable to change email', 'Close', {
           duration: 3000
         });
@@ -237,13 +263,11 @@ export class UserProfileDialog {
   // save profile
   save(): void {
     const currentUser = this.mailService.getCurrentUser();
+
     if (!currentUser) {
-      this.snackBar.open(
-        'User profile is unavailable', 'Close',
-        {
-          duration: 3000
-        }
-      );
+      this.snackBar.open('User profile is unavailable', 'Close', {
+        duration: 3000
+      });
       return;
     }
 
@@ -272,8 +296,25 @@ export class UserProfileDialog {
     }
 
     // email validation
-    const newEmail = this.data.email?.trim() ?? '';
-    const emailChanged = this.data.email.trim() !== this.originalEmail;
+    const username = this.emailUsername.trim();
+
+    if (!username) {
+      this.snackBar.open('Email username cannot be empty', 'Close', {
+        duration: 3000
+      });
+      return;
+    }
+
+    const usernamePattern = /^[a-zA-Z0-9._-]+$/;
+    if (!usernamePattern.test(username)) {
+      this.snackBar.open('Email can contain only letters, numbers, dots, underscores and hyphens.', 'Close', {
+        duration: 3000
+      });
+      return;
+    }
+
+    const newEmail = `${username}@smail.com`;
+    const emailChanged = newEmail.toLowerCase() !== this.originalEmail.toLowerCase();
 
     if (emailChanged) {
 
@@ -281,30 +322,6 @@ export class UserProfileDialog {
       // Change Email
       if (!this.emailEditing) {
         this.snackBar.open('Click "Change Email" before changing your email.', 'Close', {
-          duration: 3000
-        });
-        return;
-      }
-
-      if(!newEmail){
-        this.snackBar.open('Email cannot be empty', 'Close', {
-          duration: 3000
-        });
-      }
-
-      // Empty email
-      if (!this.data.email?.trim()) {
-        this.snackBar.open('Email cannot be empty.', 'Close', {
-          duration: 3000
-        });
-        return;
-      }
-
-      // Email valiadation
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-      if (!emailPattern.test(newEmail)) {
-        this.snackBar.open('Please enter a valid email address.', 'Close', {
           duration: 3000
         });
         return;
@@ -333,66 +350,125 @@ export class UserProfileDialog {
       dob: this.data.dob ? new Date(`${this.data.dob}T00:00:00`).toISOString() : null,
       gender: this.data.gender,
       phone: this.data.phone,
-      email: this.data.email.trim(),
-      profileImage: this.data.profileImage ?? null,
+      email: newEmail,
+      profileImage: this.data.profileImage ?? null
     }
 
     //  email changed successfully
+    // if (emailChanged) {
+    //   updatedData.emailLastChangedAt = new Date().toISOString();
+    //   updatedData.emailChangeStartedAt = null;
+    //   updatedData.emailChangeExpiresAt = null;
+    // }
+
+    // // update to db.json
+    // this.mailService.updateUser(currentUser.id!, updatedData).subscribe({
+    //   next: (updatedUser) => {
+
+    //     // Update service current user
+    //     this.mailService.currentUser = updatedUser;
+
+    //     // Update localStorage
+    //     localStorage.setItem('smailCurrentUser', JSON.stringify(updatedUser));
+
+    //     // Stop email timer
+    //     this.stopTimer();
+
+    //     // reset email
+    //     this.emailEditing = false;
+
+    //     // updates original email
+    //     this.originalEmail = updatedUser.email;
+
+    //     // Update local dialog data
+    //     this.data.name = `${updatedUser.fname} ${updatedUser.lname}`.trim();
+    //     this.data.dob = updatedUser.dob;
+    //     this.data.gender = updatedUser.gender;
+    //     this.data.phone = updatedUser.phone;
+    //     this.data.email = updatedUser.email;
+    //     this.data.profileImage = updatedUser.profileImage ?? null;
+    //     this.data.emailLastChangedAt = updatedUser.emailLastChangedAt;
+    //     this.data.emailChangeStartedAt = updatedUser.emailChangeStartedAt;
+    //     this.data.emailChangeExpiresAt = updatedUser.emailChangeExpiresAt;
+
+    //     this.checkEmailChangeStatus();
+
+    //     this.snackBar.open('Profile updated successfully', 'Close', {
+    //       duration: 3000
+    //     });
+
+    //     // Return updated user to Inbox
+    //     this.dialogRef.close(updatedUser);
+    //   },
+    //   error: (error) => {
+    //     console.error('Unable to update profile:', error);
+    //     this.snackBar.open('Unable to update profile.', 'Close',
+    //       {
+    //         duration: 3000
+    //       }
+    //     );
+    //   }
     if (emailChanged) {
-      updatedData.emailLastChangedAt = new Date().toISOString();
-      updatedData.emailChangeStartedAt = null;
-      updatedData.emailChangeExpiresAt = null;
-    }
+      const oldEmail = currentUser.email;
+      const existingAliases = currentUser.emailAliases || [];
+      const aliases = [...existingAliases];
 
-    // update to db.json
-    this.mailService.updateUser(currentUser.id!, updatedData).subscribe({
-      next: (updatedUser) => {
+      if (oldEmail && oldEmail.toLowerCase() !== newEmail.toLowerCase() && !aliases.some(
+        alias => alias.toLowerCase() === oldEmail.toLowerCase())) {
 
-        // Update service current user
-        this.mailService.currentUser = updatedUser;
-
-        // Update localStorage
-        localStorage.setItem('smailCurrentUser', JSON.stringify(updatedUser));
-
-        // Stop email timer
-        this.stopTimer();
-
-        // reset email
-        this.emailEditing = false;
-
-        // updates original email
-        this.originalEmail = updatedUser.email;
-
-        // Update local dialog data
-        this.data.name = `${updatedUser.fname} ${updatedUser.lname}`.trim();
-        this.data.dob = updatedUser.dob;
-        this.data.gender = updatedUser.gender;
-        this.data.phone = updatedUser.phone;
-        this.data.email = updatedUser.email;
-        this.data.profileImage = updatedUser.profileImage ?? null;
-        this.data.emailLastChangedAt = updatedUser.emailLastChangedAt;
-        this.data.emailChangeStartedAt = updatedUser.emailChangeStartedAt;
-        this.data.emailChangeExpiresAt = updatedUser.emailChangeExpiresAt;
-
-        this.checkEmailChangeStatus();
-
-        this.snackBar.open('Profile updated successfully', 'Close', {
-          duration: 3000
-        });
-
-        // Return updated user to Inbox
-        this.dialogRef.close(updatedUser);
-      },
-      error: (error) => {
-        console.error('Unable to update profile:', error);
-        this.snackBar.open('Unable to update profile.', 'Close',
-          {
-            duration: 3000
-          }
-        );
+        aliases.push(oldEmail);
       }
-    });
-  }
+
+      updatedData.emailAliases = aliases;
+      updatedData.emailChangeStartedAt = null;
+      updatedData.emaiLastChangedAt = new Date().toISOString();
+
+      this.mailService.updateUserEmail(currentUser, updatedData).subscribe({
+        next: (updatedUser) => {
+
+          // Update service
+          this.mailService.currentUser = updatedUser;
+
+          // Update localStorage
+          localStorage.setItem('smailCurrentUser', JSON.stringify(updatedUser));
+
+          this.stopTimer();
+
+          this.emailEditing = false;
+          this.canChangeEmail = false;
+
+          this.originalEmail = updatedUser.email;
+
+          // Update dialog data
+          this.data.name = `${updatedUser.fname} ${updatedUser.lname}`.trim();
+          this.data.dob = updatedUser.dob;
+          this.data.gender = updatedUser.gender;
+          this.data.phone = updatedUser.phone;
+          this.data.email = updatedUser.email;
+          this.data.profileImage = updatedUser.profileImage ?? null;
+          this.data.emailAliases = updatedUser.emailAliases ?? [];
+          this.data.emailLastChangedAt = updatedUser.emailLastChangedAt;
+          this.data.emailChangeStartedAt = null;
+          this.data.emailChangeExpiresAt = null;
+          this.snackBar.open(emailChanged ? 'Email updated successfully' : 'Profile updated succesfully',
+            'Close', {
+            duration: 3000
+          });
+
+          this.dialogRef.close(updatedUser);
+        },
+
+        error: (error) => {
+          console.error('Unable to update email:', error);
+          this.snackBar.open('Unable to update email.', 'Close', {
+            duration: 3000
+          });
+        }
+      });
+      return;
+    }
+  };
+
 
   ngOnDestroy(): void {
     this.stopTimer();

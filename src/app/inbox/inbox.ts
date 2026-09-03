@@ -168,36 +168,32 @@ export class Inbox {
     });
   }
 
-  activeLabel: any = null;
-
-  openLabelMenu(event: MouseEvent, label: any): void {
-    event.stopPropagation();
-    this.activeLabel = label;
-  }
-
   // Edit label
   editLabel(label: { id: number; name: string }): void {
-    if(!label){
-      return;
-    }
-    
+
     const dialogRef = this.dialog.open(CreateLabelDialog, {
       width: '500px',
       disableClose: true,
       data: {
         mode: 'edit',
-        label: { ...label }
+        label: {
+          id: label.id,
+          name: label.name
+        }
       }
     });
 
     dialogRef.afterClosed().subscribe((newLabelName: string | undefined) => {
+
       if (!newLabelName?.trim()) {
         return;
       }
 
       const newName = newLabelName.trim();
 
-      const alreadyExists = this.labels.some(existingLabel => existingLabel.id !== label.id &&
+      // Check duplicate label name
+      const alreadyExists = this.labels.some(existingLabel =>
+        existingLabel.id !== label.id &&
         existingLabel.name.toLowerCase() === newName.toLowerCase()
       );
 
@@ -208,15 +204,31 @@ export class Inbox {
         return;
       }
 
-      // update label
       const oldName = label.name;
-      label.name = newName;
 
+      // Update label
+      const labelToUpdate = this.labels.find(
+        existingLabel => existingLabel.id === label.id
+      );
+
+      if (!labelToUpdate) {
+        return;
+      }
+
+      labelToUpdate.name = newName;
+
+      // Save updated labels
       localStorage.setItem('smailLabels', JSON.stringify(this.labels));
-      this.snackBar.open('Label renamed', 'Close', {
+
+      // If currently viewing this label
+      if (this.selectedTab === oldName) {
+        this.selectedTab = newName;
+        this.selectLabel(newName);
+      }
+
+      this.snackBar.open(`Label renamed to "${newName}"`, 'Close', {
         duration: 3000
       });
-      this.selectLabel(newName);
     });
   }
 
@@ -401,7 +413,7 @@ export class Inbox {
   openMail(mail: any): void {
 
     // reopen compose for the drafts
-    if (mail.draft === true) {
+    if (mail.draft === true && mail.trash !== true) {
       this.openDraft(mail);
       return;
     }
@@ -650,38 +662,126 @@ export class Inbox {
   }
 
   // Archive all selected mails
-  archiveSelectedMails(): void {
+  // archiveSelectedMails(): void {
+  //   const selectedMails = this.mails.filter(mail => mail.selected === true);
+
+  //   if (selectedMails.length === 0) {
+  //     return;
+  //   }
+
+  //   let completed = 0;
+  //   let failed = false;
+
+  //   selectedMails.forEach(mail => {
+  //     this.mailService.archiveMail(mail).subscribe({
+  //       next: () => {
+  //         completed++;
+  //         if (completed === selectedMails.length && !failed) {
+
+  //           // archives all mails 
+  //           this.mails = this.mails.filter(mail => !selectedMails.some(selected => selected.id === mail.id));
+  //           this.clearSelection();
+
+  //           this.snackBar.open(`${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} archived`,
+  //             'Close', {
+  //             duration: 3000
+  //           });
+  //         }
+  //       },
+  //       error: (error) => {
+  //         failed = true;
+  //         console.error('Error archiving mails', error);
+  //       }
+  //     })
+  //   })
+  // }
+
+  // checks if all are archive
+  areAllSelectedMailsArchived(): boolean {
+    const selectedMails = this.mails.filter(mail => mail.selected === true);
+
+    return selectedMails.length > 0 && selectedMails.every(mail => mail.archived === true);
+  }
+
+  // toggling between archive & unarchive all mails at once
+  toggleSelectedArchiveStatus(): void {
     const selectedMails = this.mails.filter(mail => mail.selected === true);
 
     if (selectedMails.length === 0) {
       return;
     }
 
-    let completed = 0;
-    let failed = false;
+    const allArchived = selectedMails.every(mail => mail.archived === true);
+    const newArchivedStatus = !allArchived;
+
+    const previousStates = selectedMails.map(mail => ({
+      mail: mail,
+      archived: mail.archived
+    })
+    )
 
     selectedMails.forEach(mail => {
-      this.mailService.archiveMail(mail).subscribe({
-        next: () => {
-          completed++;
-          if (completed === selectedMails.length && !failed) {
+      const previousArchivedState = mail.archived;
+      mail.archived = newArchivedStatus;
 
-            // archives all mails 
-            this.mails = this.mails.filter(mail => !selectedMails.some(selected => selected.id === mail.id));
-            this.clearSelection();
+      if (newArchivedStatus) {
 
-            this.snackBar.open(`${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} archived`,
-              'Close', {
-              duration: 3000
-            });
+        // archive
+        this.mailService.archiveMail(mail).subscribe({
+          next: (updatedMail) => {
+            mail.archived = updatedMail.archived;
+          },
+          error: (error) => {
+            console.error('Failed to archive mail', error);
+            mail.archived = previousArchivedState;
           }
-        },
-        error: (error) => {
-          failed = true;
-          console.error('Error archiving mails', error);
+        });
+      } else {
+
+        // unarchive (move to inbox)
+        this.mailService.unarchiveMail(mail).subscribe({
+          next: (updatedMail) => {
+            mail.archived = updatedMail.archived;
+          },
+          error: (error) => {
+            console.error('Failed to archive mail', error);
+            mail.archived = previousArchivedState;
+          }
+        });
+      }
+    });
+    // undo
+    const snackBarRef = this.snackBar.open(newArchivedStatus
+      ? `${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} archived`
+      : `${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} moved to inbox`, 'Undo', {
+      duration: 5000
+    });
+
+    snackBarRef.onAction().subscribe(() => {
+      previousStates.forEach(state => {
+        state.mail.archived = state.archived
+
+        // restore as archive
+        if (state.archived) {
+          this.mailService.archiveMail(state.mail).subscribe({
+            error: (error) => {
+              console.error('Failed to undo archive for mail', error)
+            }
+          });
+        } else {
+
+          // restore back to inbox
+          this.mailService.unarchiveMail(state.mail).subscribe({
+            error: (error) => {
+              console.error('Failed to undo unarcive for mail', error);
+            }
+          })
         }
-      })
-    })
+      });
+      this.snackBar.open('Action undone', 'Close', {
+        duration: 3000
+      });
+    });
   }
 
   // Delete all selected mails
@@ -705,9 +805,9 @@ export class Inbox {
             this.mails = this.mails.filter(mail => !selectedMails.some(selected => selected.id === mail.id));
             this.clearSelection();
 
-            const snackBarRef = this.snackBar.open(`${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} move to trash`,
-              'Undo', {
-              duration: 3000
+            const snackBarRef = this.snackBar.open(
+              `${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} move to trash`, 'Undo', {
+              duration: 5000
             });
 
             // Undo all
@@ -740,68 +840,72 @@ export class Inbox {
           failed = true;
           console.error('Error deleting mail', error);
         }
-      })
-    })
+      });
+    });
   }
 
-  // Report spam all selected mails
-  reportSpamSelectedMails(): void {
+  // checks if all mails spam
+  areAllSelectedMailsSpam(): boolean {
+    const selectedMails = this.mails.filter(mail => mail.selected === true);
 
-    const selectedMails = this.mails.filter(
-      mail => mail.selected === true
-    );
+    return selectedMails.length > 0 && selectedMails.every(mail => mail.spam === true);
+  }
+
+  toggleSelectedSpamStatus(): void {
+    const selectedMails = this.mails.filter(mail => mail.selected === true);
 
     if (selectedMails.length === 0) {
       return;
     }
 
-    let completed = 0;
-    let failed = false;
+    const allSpam = selectedMails.every(mail => mail.spam === true);
+    const newSpamStatus = !allSpam;
+
+    const previousStates = selectedMails.map(mail => ({
+      mail,
+      spam: mail.spam,
+      archived: mail.archived,
+      trash: mail.trash
+    }));
 
     selectedMails.forEach(mail => {
-      this.mailService.markAsSpam(mail).subscribe({
-        next: () => {
-          completed++;
-          if (completed === selectedMails.length && !failed) {
-            this.mails = this.mails.filter(mail => !selectedMails.some(selected => selected.id === mail.id));
-            this.clearSelection();
+      mail.spam = newSpamStatus;
 
-            const snackBarRef = this.snackBar.open(
-              `${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} moved to Spam`,
-              'Undo', {
-              duration: 5000
-            });
+      if (newSpamStatus) {
+        this.mailService.markAsSpam(mail).subscribe();
+      } else {
+        this.mailService.removeFromSpam(mail).subscribe();
+      }
+    });
 
-            snackBarRef.onAction().subscribe(() => {
-              let restored = 0;
-              selectedMails.forEach(mail => {
-                this.mailService.undoSpam(mail).subscribe({
-                  next: (restoredMail) => {
-                    restored++;
-                    this.mails.unshift({
-                      ...restoredMail,
-                      selected: false
-                    });
-                    if (restored === selectedMails.length) {
-                      this.snackBar.open('Selected mails restored', 'Close', {
-                        duration: 3000
-                      });
-                    }
-                  },
-                  error: (error) => {
-                    console.error('Error undoing spam', error);
-                  }
-                });
-              });
-            });
-          }
-        },
-        error: (error) => {
-          failed = true;
-          console.error(`Error reporting mails as spam`, error);
+    const snackBarRef = this.snackBar.open(newSpamStatus
+      ? `${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} reported as spam`
+      : `${selectedMails.length} mail${selectedMails.length > 1 ? 's' : ''} moved to inbox`, 'Undo', {
+      duration: 5000
+    }
+    );
+
+    snackBarRef.onAction().subscribe(() => {
+      previousStates.forEach(state => {
+        state.mail.spam = state.spam,
+          state.mail.archived = state.archived,
+          state.mail.trash = state.trash
+
+        // restores the spam state
+        if (state.spam) {
+          this.mailService.markAsSpam(state.mail).subscribe();
+        } else {
+          this.mailService.removeFromSpam(state.mail).subscribe();
         }
       });
-    });
+
+      this.snackBar.open('Action undone', 'Close', {
+        duration: 3000
+      });
+
+      // reloads current tab
+      this.selectTab(this.selectedTab);
+    })
   }
 
   // Mark as Read all selected mails
@@ -1360,11 +1464,25 @@ export class Inbox {
 
   // Move mails to trash
   moveToTrash(mail: Mail): void {
+    const wasDraft = mail.draft === true;
+
     this.mailService.moveToTrash(mail).subscribe({
-      next: () => {
+      next: (updatedMail) => {
+
+        // once draft moved to trash is no longer treated as draft
+        if (wasDraft) {
+          updatedMail.draft = false;
+        }
+
+        updatedMail.trash = true;
+
+        mail.draft = updatedMail.draft;
+        mail.trash = updatedMail.trash;
+
         // Remove from current screen
         this.mails = this.mails.filter(m => m.id !== mail.id);
-        const snackBarRef = this.snackBar.open('Conversation moved to trash', 'Undo', {
+        const snackBarRef = this.snackBar.open(
+          wasDraft ? 'Draft moved to trash' : 'Conversation moved to trash', 'Undo', {
           duration: 5000
         });
 
@@ -1372,11 +1490,13 @@ export class Inbox {
         snackBarRef.onAction().subscribe(() => {
           this.mailService.undoTrash(mail).subscribe({
             next: (restoredMail) => {
+
               this.mails.unshift({
                 ...restoredMail,
                 selected: false
               });
-              this.snackBar.open('Conversation restored', 'Close', {
+
+              this.snackBar.open(wasDraft ? 'Draft restored' : 'Conversation restored', 'Close', {
                 duration: 3000
               });
             },
@@ -1391,6 +1511,9 @@ export class Inbox {
       },
       error: (error) => {
         console.error('Error moving mail to trash', error);
+        this.snackBar.open('Unable to move mail to trash', 'Close', {
+          duration: 3000
+        });
       }
     });
   }
@@ -1427,26 +1550,18 @@ export class Inbox {
     }
 
     const onReplyDialog = (threadId: string): void => {
-      const recipient =
-        mail.from === currentUser.email
-          ? mail.to
-          : mail.from;
+      const recipient = mail.from === currentUser.email ? mail.to : mail.from;
 
-      const subject = mail.subject?.startsWith('Re:')
-        ? mail.subject
-        : `Re: ${mail.subject}`;
+      const subject = mail.subject?.startsWith('Re:') ? mail.subject : `Re: ${mail.subject}`;
 
       const dialogRef = this.dialog.open(ComposeDialog, {
         width: '550px',
         maxWidth: '95vw',
-
         position: {
           bottom: '20px',
           right: '40px'
         },
-
         panelClass: 'compose-dialog-panel',
-
         data: {
           mode: 'reply',
           from: currentUser.email,
@@ -1486,7 +1601,7 @@ export class Inbox {
           duration: 3000
         });
       }
-    })
+    });
   }
 
   // Forward mail
@@ -1505,13 +1620,11 @@ export class Inbox {
 
     const forwardedBody = `
     --------- Forwarded Message ---------
-
     From: ${this.getUserFullName(mailToForward.from)} <${mailToForward.from}>
     To: ${this.getUserFullName(mailToForward.to)} <${mailToForward.to}>
     Date: ${new Date(mailToForward.date).toLocaleString()}
     Subject: ${mailToForward.subject || '(no subject)'}
     ${mailToForward.body}
-
     ------------------------------------
     `;
 
@@ -1571,23 +1684,13 @@ export class Inbox {
       return;
     }
 
-    const profileData = {
-      id: currentUser.id,
-      name: `${currentUser.fname} ${currentUser.lname}`,
-      dob: currentUser.dob,
-      gender: currentUser.gender,
-      phone: currentUser.phone,
-      email: currentUser.email,
-      emailLastChangedAt: currentUser.emailLastChangedAt ?? null,
-      emailChangeStartedAt: currentUser.emailChangeStartedAt ?? null,
-      emailChangeExpiresAt: currentUser.emailChangeExpiresAt ?? null
-    };
-
     const dialogRef = this.dialog.open(UserProfileDialog, {
       width: '500px',
       height: '550px',
-      disableClose: true,
-      data: { ...profileData }
+      data: {
+        ...currentUser,
+        name: `${currentUser.fname} ${currentUser.lname}`.trim()
+      }
     });
 
     dialogRef.afterClosed().subscribe(result => {

@@ -267,11 +267,28 @@
         }
 
         .label-list {
+
             .label-item {
                 display: flex;
                 align-items: center;
-                gap: 18px;
+                position: relative;
+                gap: 16px;
+
+                .label-more-btn {
+                    margin-left: auto;
+                    opacity: 0;
+                    visibility: hidden;
+                    transition: opacity 0.2s ease;
+                }
+
+                &:hover {
+                    .label-more-btn {
+                        opacity: 1;
+                        visibility: visible;
+                    }
+                }
             }
+
         }
     }
 

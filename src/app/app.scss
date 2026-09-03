@@ -1,81 +1,32 @@
-// deleteLabel(label: { id: number; name: string }): void {
+// updateUserEmail(
+//   user: User,
+//   newEmail: string
+// ): Observable<User> {
 
-//     const index = this.labels.findIndex(
-//         existingLabel => existingLabel.id === label.id
-//     );
+//   const oldEmail = this.normalizeEmail(user.email);
+//   const normalizedNewEmail = this.normalizeEmail(newEmail);
 
-//     if (index === -1) {
-//         return;
+//   let aliases = [...(user.emailAliases || [])]
+//     .map(email => this.normalizeEmail(email))
+//     .filter(email => email !== normalizedNewEmail);
+
+//   // Store previous email as an alias
+//   if (
+//     oldEmail &&
+//     oldEmail !== normalizedNewEmail &&
+//     !aliases.includes(oldEmail)
+//   ) {
+//     aliases.push(oldEmail);
+//   }
+
+//   return this.http.patch<User>(
+//     `${this.userApiUrl}/${user.id}`,
+//     {
+//       email: normalizedNewEmail,
+//       emailAliases: aliases,
+//       emailLastChangedAt: new Date().toISOString(),
+//       emailChangeStartedAt: null,
+//       emailChangeExpiresAt: null
 //     }
-
-//     // Remove label from array
-//     this.labels.splice(index, 1);
-
-//     // Update localStorage
-//     localStorage.setItem(
-//         'smailLabels',
-//         JSON.stringify(this.labels)
-//     );
-
-//     // If currently viewing this label,
-//     // return to Inbox.
-//     if (this.selectedTab === label.name) {
-
-//         this.selectedTab = 'Primary';
-
-//         this.selectedMail = null;
-//         this.conversation = [];
-
-//         this.loadInboxMails();
-
-//     }
-
-//     this.snackBar.open(
-//         `Label "${label.name}" deleted`,
-//         'Close',
-//         {
-//             duration: 3000
-//         }
-//     );
-
-// }
-
-// selectLabel(labelName: string): void {
-
-//     this.selectedMail = null;
-//     this.conversation = [];
-
-//     this.selectedTab = labelName;
-
-//     // Get all mails
-//     this.mailService.getMails().subscribe({
-
-//         next: (mails) => {
-
-//             const currentUser = this.mailService.getCurrentUser();
-
-//             if (!currentUser) {
-//                 return;
-//             }
-
-//             const labelMails = mails.filter(mail =>
-//                 mail.trash === false &&
-//                 mail.spam !== true &&
-//                 (
-//                     mail.from === currentUser.email ||
-//                     mail.to === currentUser.email
-//                 ) &&
-//                 mail.labels?.includes(labelName)
-//             );
-
-//             this.addMailsToBeginning(labelMails);
-
-//         },
-
-//         error: (error) => {
-//             console.error('Error loading label mails:', error);
-//         }
-
-//     });
-
+//   );
 // }

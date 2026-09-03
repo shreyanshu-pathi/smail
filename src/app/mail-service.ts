@@ -76,6 +76,44 @@ export class MailService {
     )
   }
 
+  // change of email of the same user
+  private normalizeEmail(email: string | null | undefined): string {
+    return (email || '').trim().toLowerCase();
+  }
+
+  // storing the user email in array of the same user
+  private getUserEmails(user: User): string[] {
+    const emails = [
+      user.email,
+      ...(user.emailAliases || [])
+    ];
+
+    return emails.filter(Boolean).map(email => this.normalizeEmail(email))
+  }
+
+
+  updateUserEmail(user: User, newEmail: string): Observable<User> {
+    const oldEmail = this.normalizeEmail(user.email);
+    const normalizeNewEmail = this.normalizeEmail(newEmail);
+
+    let aliases = [...(user.emailAliases || [])]
+      .map(email => this.normalizeEmail(email)).filter(email => email !== normalizeNewEmail);
+
+    if (oldEmail && oldEmail !== normalizeNewEmail && !aliases.includes(oldEmail)) {
+      aliases.push(oldEmail);
+    }
+    return this.http.patch<User>(
+      `${this.userApiUrl}/${user.id}`,
+      {
+        email: normalizeNewEmail,
+        emailAliases: aliases,
+        emailLastChangedAt: new Date().toISOString(),
+        emailChangeStartedAt: null,
+        emailChangeExpiresAt: null
+      }
+    )
+  }
+
   // retrieves user by phone
   getUserByPhone(phone: string): Observable<User[]> {
     const normalizedPhone = String(phone).replace(/\D/g, '');
@@ -191,41 +229,127 @@ export class MailService {
   }
 
   //Inbox mail
+  // getInboxMails(email: string): Observable<Mail[]> {
+  //   return this.http.get<Mail[]>(this.mailApiUrl).pipe(
+  //     map(mails =>
+  //       mails.filter(mail => {
+
+  //         // recieves inbox mails
+  //         const isReceivedMail = mail.to?.toLowerCase() === email.toLowerCase();
+
+  //         // failed outgoing mail when address is not found
+  //         const isFailedOutgoingMail = mail.from?.toLowerCase() === email.toLowerCase() &&
+  //           mail.deliveryFailed === true;
+
+  //         return (
+  //           (isReceivedMail || isFailedOutgoingMail) &&
+  //           mail.draft !== true &&
+  //           mail.spam !== true &&
+  //           mail.snoozed !== true &&
+  //           mail.archived !== true &&
+  //           mail.trash !== true &&
+  //           mail.promotion !== true &&
+  //           mail.social !== true &&
+  //           mail.updates !== true
+  //         )
+  //       })
+  //     )
+  //   );
+  // }
+
   getInboxMails(email: string): Observable<Mail[]> {
-    return this.http.get<Mail[]>(this.mailApiUrl).pipe(
-      map(mails =>
-        mails.filter(mail => {
 
-          // recieves inbox mails
-          const isReceivedMail = mail.to?.toLowerCase() === email.toLowerCase();
+  return this.getUserByEmail(email).pipe(
 
-          // failed outgoing mail when address is not found
-          const isFailedOutgoingMail = mail.from?.toLowerCase() === email.toLowerCase() &&
-            mail.deliveryFailed === true;
+    switchMap(users => {
 
-          return (
-            (isReceivedMail || isFailedOutgoingMail) &&
-            mail.draft !== true &&
-            mail.spam !== true &&
-            mail.snoozed !== true &&
-            mail.archived !== true &&
-            mail.trash !== true &&
-            mail.promotion !== true &&
-            mail.social !== true &&
-            mail.updates !== true
-          )
-        })
-      )
-    );
-  }
+      if (!users.length) {
+        return of([]);
+      }
+
+      const user = users[0];
+
+      const userEmails = this.getUserEmails(user);
+
+      return this.http.get<Mail[]>(this.mailApiUrl).pipe(
+
+        map(mails =>
+          mails.filter(mail => {
+
+            const mailTo = this.normalizeEmail(mail.to);
+            const mailFrom = this.normalizeEmail(mail.from);
+
+            // Mail belongs to this user's mailbox
+            const isReceivedMail =
+              userEmails.includes(mailTo);
+
+            // Failed outgoing mail
+            const isFailedOutgoingMail =
+              userEmails.includes(mailFrom) &&
+              mail.deliveryFailed === true;
+
+            return (
+              (isReceivedMail || isFailedOutgoingMail) &&
+              mail.draft !== true &&
+              mail.spam !== true &&
+              mail.snoozed !== true &&
+              mail.archived !== true &&
+              mail.trash !== true &&
+              mail.promotion !== true &&
+              mail.social !== true &&
+              mail.updates !== true
+            );
+          })
+        )
+
+      );
+    })
+  );
+}
 
   // get sent mail
-  getSentMails(email: string): Observable<Mail[]> {
-    return this.http.get<Mail[]>(
-      `${this.mailApiUrl}?from=${encodeURIComponent(email)}&trash=false&spam=false`
-    );
-  }
+  // getSentMails(email: string): Observable<Mail[]> {
+  //   return this.http.get<Mail[]>(
+  //     `${this.mailApiUrl}?from=${encodeURIComponent(email)}&trash=false&spam=false`
+  //   );
+  // }
 
+  getSentMails(email: string): Observable<Mail[]> {
+
+  return this.getUserByEmail(email).pipe(
+
+    switchMap(users => {
+
+      if (!users.length) {
+        return of([]);
+      }
+
+      const user = users[0];
+
+      const userEmails = this.getUserEmails(user);
+
+      return this.http.get<Mail[]>(this.mailApiUrl).pipe(
+
+        map(mails =>
+          mails.filter(mail => {
+
+            const mailFrom = this.normalizeEmail(mail.from);
+
+            return (
+              userEmails.includes(mailFrom) &&
+              mail.trash !== true &&
+              mail.spam !== true
+            );
+
+          })
+        )
+
+      );
+
+    })
+
+  );
+}
   // get starred mails
   getStarredMails(email: string): Observable<Mail[]> {
     return this.getMails();
@@ -268,7 +392,7 @@ export class MailService {
   moveToTrash(mail: Mail): Observable<Mail> {
     return this.http.patch<Mail>(
       `${this.mailApiUrl}/${mail.id}`,
-      { trash: true }
+      { trash: true, draft: false }
     );
   }
 
@@ -309,19 +433,61 @@ export class MailService {
   }
 
   // Get trash mails
+  // getTrashMails(email: string): Observable<Mail[]> {
+  //   return this.http.get<Mail[]>(
+  //     `${this.mailApiUrl}?trash=true`
+  //   ).pipe(
+  //     map((mails: Mail[]) =>
+  //       mails.filter(mail =>
+  //         mail.trash === true && (
+  //           mail.to === email || mail.from === email
+  //         )
+  //       )
+  //     )
+  //   );
+  // }
+
   getTrashMails(email: string): Observable<Mail[]> {
-    return this.http.get<Mail[]>(
-      `${this.mailApiUrl}?trash=true`
-    ).pipe(
-      map((mails: Mail[]) =>
-        mails.filter(mail =>
-          mail.trash === true && (
-            mail.to === email || mail.from === email
-          )
+
+  return this.getUserByEmail(email).pipe(
+
+    switchMap(users => {
+
+      if (!users.length) {
+        return of([]);
+      }
+
+      const user = users[0];
+
+      const userEmails = this.getUserEmails(user);
+
+      return this.http.get<Mail[]>(
+        `${this.mailApiUrl}?trash=true`
+      ).pipe(
+
+        map(mails =>
+          mails.filter(mail => {
+
+            const mailTo = this.normalizeEmail(mail.to);
+            const mailFrom = this.normalizeEmail(mail.from);
+
+            return (
+              mail.trash === true &&
+              (
+                userEmails.includes(mailTo) ||
+                userEmails.includes(mailFrom)
+              )
+            );
+
+          })
         )
-      )
-    );
-  }
+
+      );
+
+    })
+
+  );
+}
 
   // read status  
   updateReadStatus(mail: Mail) {
@@ -375,20 +541,97 @@ export class MailService {
   }
 
   // Get promoitonal mails
+  // getPromotionalMails(email: string): Observable<Mail[]> {
+  //   return this.http.get<Mail[]>(
+  //     `${this.mailApiUrl}?to=${encodeURIComponent(email)}&trash=false`
+  //   ).pipe(
+  //     map((mails: Mail[]) =>
+  //       mails.filter(mail =>
+  //         mail.promotion === true &&
+  //         mail.draft != true &&
+  //         mail.archived !== true &&
+  //         mail.spam !== true
+  //       )
+  //     )
+  //   );
+  // }
+
   getPromotionalMails(email: string): Observable<Mail[]> {
-    return this.http.get<Mail[]>(
-      `${this.mailApiUrl}?to=${encodeURIComponent(email)}&trash=false`
-    ).pipe(
-      map((mails: Mail[]) =>
-        mails.filter(mail =>
-          mail.promotion === true &&
-          mail.draft != true &&
-          mail.archived !== true &&
-          mail.spam !== true
+
+  return this.getUserByEmail(email).pipe(
+
+    switchMap(users => {
+
+      if (!users.length) {
+        return of([]);
+      }
+
+      const user = users[0];
+
+      const userEmails = this.getUserEmails(user);
+
+      return this.http.get<Mail[]>(this.mailApiUrl).pipe(
+
+        map(mails =>
+          mails.filter(mail => {
+
+            const mailTo = this.normalizeEmail(mail.to);
+
+            return (
+              userEmails.includes(mailTo) &&
+              mail.promotion === true &&
+              mail.draft !== true &&
+              mail.archived !== true &&
+              mail.spam !== true &&
+              mail.trash !== true
+            );
+
+          })
         )
-      )
-    );
-  }
+
+      );
+
+    })
+
+  );
+}
+
+resolveEmail(email: string): Observable<string> {
+
+  const normalizedEmail = this.normalizeEmail(email);
+
+  return this.http.get<User[]>(this.userApiUrl).pipe(
+
+    map(users => {
+
+      const user = users.find(user => {
+
+        const currentEmail =
+          this.normalizeEmail(user.email);
+
+        const aliases =
+          (user.emailAliases || [])
+            .map(alias => this.normalizeEmail(alias));
+
+        return (
+          currentEmail === normalizedEmail ||
+          aliases.includes(normalizedEmail)
+        );
+
+      });
+
+      // If it belongs to an existing user,
+      // deliver it to the current email.
+      if (user) {
+        return user.email;
+      }
+
+      // Normal external email
+      return email;
+    })
+
+  );
+}
 
   // manually move/mark an existing mail as a Promotional mail
   // markAsPromotion(mail: Mail): Observable<Mail> {

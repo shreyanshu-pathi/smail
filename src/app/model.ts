@@ -9,6 +9,8 @@ export interface User {
     phone?: string;
     profileImage?: string | null;
 
+    emailAliases?: string[];
+
     // email change
     emailLastChangedAt?: string | null;
     emailChangeStartedAt?: string | null;
