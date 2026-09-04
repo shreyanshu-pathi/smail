@@ -47,6 +47,7 @@ export class Inbox {
   // contains all mails
   allMails: Mail[] = [];
 
+  //filtered mails
   filteredMails: Mail[] = [];
 
   // Selected mail
@@ -413,7 +414,7 @@ export class Inbox {
   openMail(mail: any): void {
 
     // reopen compose for the drafts
-    if (mail.draft === true && mail.trash !== true) {
+    if (mail.draft === true) {
       this.openDraft(mail);
       return;
     }
@@ -1177,12 +1178,34 @@ export class Inbox {
   }
 
   // add mails in beginning
+  // addMailsToBeginning(mails: Mail[]): void {
+  //   this.allMails = [];
+  //   this.mails = [];
+  //   mails.forEach(mail => {
+  //     this.mails.unshift(mail);
+  //   });
+
+  //   if (this.searchText.trim()) {
+  //     this.searchMails();
+  //   }
+  // }
+
   addMailsToBeginning(mails: Mail[]): void {
     this.allMails = [];
-    this.mails = [];
-    mails.forEach(mail => {
-      this.mails.unshift(mail);
-    });
+    this.mails = mails.map(mail => ({
+      ...mail,
+
+      // reads boolean values
+      read: mail.read === true,
+      starred: mail.starred === true,
+      selected: mail.selected === true,
+      trash: mail.trash === true,
+      draft: mail.draft === true,
+      spam: mail.spam === true,
+      archived: mail.archived === true,
+      promotion: mail.promotion === true,
+      snoozed: mail.snoozed === true
+    })).reverse()
 
     if (this.searchText.trim()) {
       this.searchMails();
@@ -1469,15 +1492,12 @@ export class Inbox {
     this.mailService.moveToTrash(mail).subscribe({
       next: (updatedMail) => {
 
-        // once draft moved to trash is no longer treated as draft
-        if (wasDraft) {
-          updatedMail.draft = false;
-        }
-
+        // Keep draft as draft even inside Trash
         updatedMail.trash = true;
+        updatedMail.draft = wasDraft;
 
-        mail.draft = updatedMail.draft;
-        mail.trash = updatedMail.trash;
+        mail.draft = wasDraft;
+        mail.trash = true;
 
         // Remove from current screen
         this.mails = this.mails.filter(m => m.id !== mail.id);
@@ -1542,7 +1562,6 @@ export class Inbox {
 
   // Reply mail
   replyMail(mail: Mail): void {
-
     const currentUser = this.mailService.getCurrentUser();
 
     if (!currentUser) {
@@ -1551,9 +1570,9 @@ export class Inbox {
 
     const onReplyDialog = (threadId: string): void => {
       const recipient = mail.from === currentUser.email ? mail.to : mail.from;
-
+      
       const subject = mail.subject?.startsWith('Re:') ? mail.subject : `Re: ${mail.subject}`;
-
+      
       const dialogRef = this.dialog.open(ComposeDialog, {
         width: '550px',
         maxWidth: '95vw',
@@ -1726,14 +1745,11 @@ export class Inbox {
     const dialogRef = this.dialog.open(ComposeDialog, {
       width: '550px',
       maxWidth: '95vw',
-
       position: {
         bottom: '20px',
         right: '40px'
       },
-
       panelClass: 'compose-dialog-panel',
-
       data: {
         mode: 'draft',
         id: draft.id,
@@ -1742,14 +1758,20 @@ export class Inbox {
         subject: draft.subject || '',
         body: draft.body || '',
         threadId: draft.threadId,
-        replyToId: draft.replyToId
+        replyToId: draft.replyToId,
+        trash: draft.trash === true,
+        starred: draft.starred === true,
+        spam: draft.spam === true,
+        archived: draft.archived === true,
+        attachment: draft.attachment
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (!result?.draftSaved) {
         setTimeout(() => {
-          this.loadDraftCount(); this.refresh();
+          this.loadDraftCount();
+          this.refresh();
         }, 0);
       }
     });
@@ -1786,7 +1808,7 @@ export class Inbox {
   // logout
   logout(): void {
     this.mailService.logout();
-    this.router.navigate(['/login'], {
+    this.router.navigate(['/logout'], {
       replaceUrl: true
     });
   }

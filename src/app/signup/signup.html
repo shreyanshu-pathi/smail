@@ -305,7 +305,7 @@
 
                     <mat-label>Confirm password</mat-label>
 
-                    <input matInput [type]="hideConfirmPassword() ? 'password' : 'text'"
+                    <input matInput [type]="hideConfirmPassword() ? 'password' : 'text'" (paste)="$event.preventDefault()"
                         formControlName="confirmPassword" placeholder="Confirm your password">
                     <button mat-icon-button matSuffix type="button"
                         (click)="hideConfirmPassword.set(!hideConfirmPassword())">

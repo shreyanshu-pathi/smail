@@ -2,7 +2,9 @@
 
     <!-- Header -->
     <div class="compose-header">
-        <span>New Message</span>
+        <span>
+            {{ data.mode === 'reply' ? 'Reply' : data.mode === 'forward' ? 'Forward' : 'New Message' }}
+        </span>
 
         <div class="compose-header-actions">
             <button mat-icon-button type="button" [matTooltip]="isMinimized? 'Restore' : 'Minimize'"
@@ -17,10 +19,9 @@
     </div>
 
     <!-- Form -->
-      @if(!isMinimized){
+    @if(!isMinimized){
     <form [formGroup]="composeForm">
 
-        
         <!-- From -->
         <mat-form-field appearance="outline" class="full-width">
             <mat-label>From</mat-label>
@@ -30,8 +31,8 @@
         <!-- To -->
         <mat-form-field appearance="outline" class="full-width">
             <mat-label>To</mat-label>
+            <input matInput formControlName="to" placeholder="Recipients email" [readonly]="data.mode === 'reply'">
 
-            <input matInput formControlName="to" placeholder="Recipients email">
             @if(composeForm.controls['to'].hasError('required') && composeForm.controls['to'].touched){
             <mat-error>Recipient email is required</mat-error>
             }
@@ -43,8 +44,8 @@
         <!-- subject -->
         <mat-form-field appearance="outline" class="full-width">
             <mat-label>Subject</mat-label>
+            <input matInput formControlName="subject" placeholder="Subject" [readonly]="data.mode === 'reply'">
 
-            <input matInput formControlName="subject" placeholder="Subject">
             @if(composeForm.controls['subject'].hasError('required') && composeForm.controls['subject'].touched){
             <mat-error>Subject is required</mat-error>
             }
@@ -84,8 +85,8 @@
             </div>
 
         </div>
-    
+
     </form>
-      }
+    }
 
 </div>

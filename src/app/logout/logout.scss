@@ -1,0 +1,85 @@
+.logout-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fb;
+  font-family: Arial, sans-serif;
+}
+
+.logout-card {
+  width: 380px;
+  padding: 45px 35px;
+  background: white;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+  animation: cardEnter 0.5s ease;
+}
+
+.mail-animation {
+  position: relative;
+  width: 85px;
+  height: 85px;
+  margin: 0 auto 25px;
+}
+
+.mail-icon {
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eef2ff;
+}
+
+.mail-icon mat-icon {
+  font-size: 42px;
+  width: 42px;
+  height: 42px;
+}
+
+.check-icon {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #4caf50;
+  color: white;
+}
+
+.check-icon mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.secure-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #777;
+  font-size: 14px;
+}
+
+.secure-text mat-icon {
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
+}
+
+.btn {
+    margin-top: 14px;
+}

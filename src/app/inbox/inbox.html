@@ -10,6 +10,7 @@
             </button>
 
             <div class="logo" matTooltip="Smail" (click)="gotoInbox()">
+                <mat-icon>email</mat-icon>
                 <h1>SMAIL</h1>
             </div>
         </div>
@@ -386,12 +387,11 @@
             }
 
             <!-- Mail List -->
-            <!-- Mail List -->
             <div class="mail-list">
 
                 @for (mail of mails; track mail.id) {
 
-                <div class="mail-row" [class.unread]="!mail.read" (click)="openMail(mail)">
+                <div class="mail-row" [class.unread]="mail.read === false" (click)="openMail(mail)">
 
                     <!-- Checkbox -->
                     <div class="mail-checkbox" (click)="$event.stopPropagation()">
@@ -402,14 +402,13 @@
 
                     </div>
 
-
                     <!-- Star -->
                     @if (selectedTab !== 'Trash') {
 
                     <button mat-icon-button class="star-button" matTooltip="Star"
                         (click)="$event.stopPropagation(); toggleStar(mail)">
 
-                        <mat-icon [class.starred]="mail.starred">
+                        <mat-icon [class.starred]="mail.starred === true">
                             {{ mail.starred ? 'star' : 'star_border' }}
                         </mat-icon>
 
@@ -459,7 +458,7 @@
                     </div>
 
                     <!-- promtions -->
-                    @if (selectedTab === 'Promotions') {
+                    @if (selectedTab === 'Promotions' || selectedTab === 'Social') {
 
                     <button mat-icon-button class="more-button" matTooltip="More" [matMenuTriggerFor]="promotionMenu"
                         (click)="$event.stopPropagation()">
@@ -478,7 +477,7 @@
                     <!-- Archive -->
                     <button mat-icon-button class="delete-button" matTooltip="Archive"
                         [disabled]="selectedTab === 'Trash'" (click)="archiveMail(mail); $event.stopPropagation()">
-                        <mat-icon>archive </mat-icon>
+                        <mat-icon>archive</mat-icon>
                     </button>
 
                     <!-- Snooze -->
@@ -560,7 +559,6 @@
                         }
 
                     </div>
-
 
                     <div class="detail-toolbar-right">
 

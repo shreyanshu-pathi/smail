@@ -216,9 +216,7 @@ export class ComposeDialog {
             duration: 3000
           }
         );
-
       }
-
     });
   }
 
@@ -232,11 +230,9 @@ export class ComposeDialog {
 
     const file = input.files[0];
     if (!file.type.startsWith('image/')) {
-      this.snackBar.open(
-        'Please select an image file',
-        'Close',
-        { duration: 3000 }
-      );
+      this.snackBar.open('Please select an image file', 'Close', {
+        duration: 3000
+      });
 
       input.value = '';
       return;
@@ -313,6 +309,8 @@ export class ComposeDialog {
       return;
     }
 
+    const isTrashedDraft = this.isDraft && this.data?.trash === true;
+
     const draft: Mail = {
       id: this.data?.id,
       from: currentUser.email,
@@ -322,7 +320,7 @@ export class ComposeDialog {
       date: new Date().toISOString(),
       read: false,
       starred: false,
-      trash: false,
+      trash: isTrashedDraft,
       draft: true,
       threadId: this.data?.threadId,
       replyToId: this.data?.replyToId
@@ -349,5 +347,9 @@ export class ComposeDialog {
   isValidEmail(email: string): boolean {
     const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailPattern.test(email);
+  }
+
+  isReplyMode(): boolean {
+    return this.data?.mode === 'reply';
   }
 }

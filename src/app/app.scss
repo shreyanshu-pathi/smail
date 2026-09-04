@@ -1,32 +1,83 @@
-// updateUserEmail(
-//   user: User,
-//   newEmail: string
-// ): Observable<User> {
+// html
+// <div class="compose-container">
 
-//   const oldEmail = this.normalizeEmail(user.email);
-//   const normalizedNewEmail = this.normalizeEmail(newEmail);
+//     <!-- Header -->
+//     <div class="compose-header">
+//         <span>
+//             {{ data.mode === 'reply' ? 'Reply' : data.mode === 'forward' ? 'Forward' : 'New Message' }}
+//         </span>
 
-//   let aliases = [...(user.emailAliases || [])]
-//     .map(email => this.normalizeEmail(email))
-//     .filter(email => email !== normalizedNewEmail);
+//         <div class="compose-header-actions">
+//             <button mat-icon-button type="button" (click)="closeDialog()">
+//                 <mat-icon>close</mat-icon>
+//             </button>
+//         </div>
+//     </div>
 
-//   // Store previous email as an alias
-//   if (
-//     oldEmail &&
-//     oldEmail !== normalizedNewEmail &&
-//     !aliases.includes(oldEmail)
-//   ) {
-//     aliases.push(oldEmail);
-//   }
+//     <!-- Compose body -->
+//     <div class="compose-body">
 
-//   return this.http.patch<User>(
-//     `${this.userApiUrl}/${user.id}`,
-//     {
-//       email: normalizedNewEmail,
-//       emailAliases: aliases,
-//       emailLastChangedAt: new Date().toISOString(),
-//       emailChangeStartedAt: null,
-//       emailChangeExpiresAt: null
-//     }
-//   );
-// }
+//         <!-- FROM -->
+//         <div class="compose-field">
+//             <label>From</label>
+
+            // <input
+            //     type="text"
+            //     [value]="form.get('from')?.value"
+            //     readonly
+            //     class="readonly-field">
+//         </div>
+
+//         <!-- TO -->
+//         <div class="compose-field">
+//             <label>To</label>
+
+//             <input
+//                 type="text"
+//                 [value]="form.get('to')?.value"
+//                 [readonly]="data.mode === 'reply'"
+//                 class="readonly-field">
+//         </div>
+
+//         <!-- SUBJECT -->
+//         <div class="compose-field">
+//             <label>Subject</label>
+
+//             <input
+//                 type="text"
+//                 [value]="form.get('subject')?.value"
+//                 [readonly]="data.mode === 'reply'"
+//                 class="readonly-field">
+//         </div>
+
+//         <!-- BODY -->
+//         <div class="compose-body-field">
+
+//             <textarea
+//                 [(ngModel)]="body"
+//                 placeholder="Write your message..."
+//                 rows="12"
+//                 autofocus>
+//             </textarea>
+
+//         </div>
+
+//     </div>
+
+//     <!-- Footer -->
+//     <div class="compose-footer">
+
+//         <button
+//             mat-raised-button
+//             color="primary"
+//             type="button"
+//             (click)="send()">
+
+//             <mat-icon>send</mat-icon>
+//             Send
+
+//         </button>
+
+//     </div>
+
+// </div>

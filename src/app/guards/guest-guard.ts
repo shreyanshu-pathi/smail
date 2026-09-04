@@ -2,16 +2,19 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { MailService } from '../mail-service';
 
-export const authGuardGuard: CanActivateFn = () => {
+export const guestGuard: CanActivateFn = () => {
 
   const mailService = inject(MailService);
   const router = inject(Router);
 
   const currentUser = mailService.getCurrentUser();
 
-  if(currentUser){
-    return true;
-  }
+  if (currentUser) {
+    router.navigate(['/inbox'], {
+      replaceUrl: true
+    });
 
-  return router.createUrlTree(['/login']);
+    return false;
+  }
+  return true;
 };

@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -36,11 +36,11 @@ export class Forgotpassworddialog {
 
   private dialogRef = inject(MatDialogRef<Forgotpassworddialog>);
 
+  private dialogData = inject(MAT_DIALOG_DATA) as { email: string };
+
   forgotPasswordForm = this.fb.group(
     {
-      email: ['', [Validators.required, Validators.email]],
-
-      oldPassword: ['', [Validators.required]],
+      email: [this.dialogData?.email || '', [Validators.required, Validators.email]],
 
       password: [
         '',
@@ -67,10 +67,9 @@ export class Forgotpassworddialog {
     }
 
     const email = this.forgotPasswordForm.value.email?.trim().toLowerCase();
-    const oldPassword = this.forgotPasswordForm.value.oldPassword;
     const newPassword = this.forgotPasswordForm.value.password;
 
-    if (!email || !oldPassword || !newPassword) {
+    if (!email || !newPassword) {
       return;
     }
 
@@ -85,24 +84,6 @@ export class Forgotpassworddialog {
         }
 
         const user = users[0];
-
-        // checks for old passsword
-        if (user.password !== oldPassword) {
-          this.snackbar.open('Old password is incorrect. Please try again', 'Close', {
-            duration: 3000,
-            panelClass: ['error-snackbar']
-          });
-          return;
-        }
-
-        // old password should not be same as new password
-        if (oldPassword === newPassword) {
-          this.snackbar.open('Old password should not be same as new password', 'Close', {
-            duration: 3000,
-            panelClass: ['error-snackbar']
-          });
-          return;
-        }
 
         this.mailService.updateUser(user.id!, {
           password: newPassword

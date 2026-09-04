@@ -107,9 +107,70 @@
     </div>
     }
 
+    <!-- Change/ update password -->
+    <div class="password-section">
+        <h3>Change Password</h3>
+
+        <!-- current password -->
+        <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Current Password</mat-label>
+            <input matInput [type]="hideCurrentPassword ? 'password' : 'text'" [(ngModel)]="currentPassword"
+                name="profile-current-password" autocomplete="off" placeholder="Enter current password"
+                (paste)="$event.preventDefault()">
+
+            <button mat-icon-button matSuffix type="button" (click)="hideCurrentPassword = !hideCurrentPassword">
+                <mat-icon>{{hideCurrentPassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+            </button>
+        </mat-form-field>
+        @if(passwordSubmitted && !currentPassword){
+        <mat-error>Current password is required</mat-error>
+        }
+
+        <!-- new password -->
+        <mat-form-field appearance="outline" class="full-width">
+            <mat-label>New Password</mat-label>
+            <input matInput [(ngModel)]="newPassword" [type]="hideNewPassword ? 'password' : 'text'"
+                placeholder="Enter new password" (paste)="$event.preventDefault()">
+
+            <button mat-icon-button matSuffix type="button" (click)="hideNewPassword = !hideNewPassword">
+                <mat-icon>
+                    {{ hideNewPassword ? 'visibility_off' : 'visibility' }}
+                </mat-icon>
+            </button>
+        </mat-form-field>
+        @if(passwordSubmitted && !newPassword){
+        <mat-error>New password is required</mat-error>
+        }
+        @if (passwordSubmitted && newPassword && !isPasswordValid()) {
+        <mat-error>
+            Password must contain at least 6 characters, uppercase, lowercase,
+            number and special character.
+        </mat-error>
+        }
+
+        <!-- confirm password -->
+        <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Confirm Password</mat-label>
+            <input matInput [(ngModel)]="confirmPassword" [type]="hideConfirmPassword ? 'password' : 'text'"
+                placeholder="Enter confirm password" (paste)="$event.preventDefault()">
+
+            <button mat-icon-button matSuffix type="button" (click)="hideConfirmPassword = !hideConfirmPassword">
+                <mat-icon>
+                    {{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}
+                </mat-icon>
+            </button>
+        </mat-form-field>
+        @if (passwordSubmitted && !confirmPassword) {
+        <mat-error>Confirm password is required</mat-error>
+        }
+        @if(passwordSubmitted && confirmPassword && newPassword !== confirmPassword){
+        <mat-error>New password and confirm password do not match.</mat-error>
+        }
+    </div>
+
     <mat-dialog-actions align="end">
         <button mat-stroked-button (click)="close()">Cancel</button>
-        <button mat-raised-button (click)="save()">Save</button>
+        <button mat-raised-button type="button" (click)="save()">Save</button>
     </mat-dialog-actions>
 
 </mat-dialog-content>

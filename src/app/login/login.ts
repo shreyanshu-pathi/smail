@@ -176,9 +176,14 @@ export class Login {
 
   // forgot password
   onForgotPassword(): void {
+    const email = this.loginForm.controls['email'].value?.trim().toLowerCase();
+    
     this.dialog.open(Forgotpassworddialog, {
       width: '450px',
-      maxWidth: '95vw'
+      maxWidth: '95vw',
+      data: {
+        email: email || ''
+      }
     });
   }
 }

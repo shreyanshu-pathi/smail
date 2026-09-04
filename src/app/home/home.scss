@@ -15,6 +15,12 @@
     align-items: center;
     gap: 10px;
     min-width: 180px;
+
+    mat-icon {
+        height: 33px;
+        width: 40px;
+        font-size: 33px;
+    }
 }
 
 .gmail-text {
@@ -66,4 +72,58 @@
     border-radius: 6px;
     padding: 0 20px;
     height: 42px;
+}
+
+.hero-section {
+    min-height: calc(100vh - 80px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 0px 20px;
+
+    .hero-content {
+        max-width: 750px;
+    }
+
+    .welcome-text {
+        display: block;
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: 4px;
+        margin-bottom: 15px;
+    }
+
+    .hero-content h1 {
+        margin: 0;
+        font-size: 80px;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .hero-content p {
+        max-width: 600px;
+        margin: 0 auto;
+        font-size: 18px;
+        line-height: 1.7;
+        opacity: 0.7;
+    }
+
+    .hero-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 35px;
+
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 25px;
+        }
+
+        .signin-btn {
+            padding: 12px 28px;
+            border-radius: 25px;
+        }
+    }
 }

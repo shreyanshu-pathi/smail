@@ -30,10 +30,24 @@ export class UserProfileDialog {
   emailUsername: string = '';
   emailEditing: boolean = false;
   canChangeEmail: boolean = false;
+
   nextEmailChangeDate: Date | null = null;
   timeRemaining: string = '01:00:00';
+
   private timer: any;
   private originalEmail: string = '';
+
+  // password change
+  currentPassword: string = '';
+  newPassword: string = '';
+  confirmPassword: string = '';
+
+  // hide passwords of all passwords fields
+  hideCurrentPassword: boolean = true;
+  hideNewPassword: boolean = true;
+  hideConfirmPassword: boolean = true;
+
+  passwordSubmitted: boolean = false;
 
   constructor(
     public dialogRef: MatDialogRef<UserProfileDialog>,
@@ -51,6 +65,12 @@ export class UserProfileDialog {
 
     // email ending with @smail.com
     this.emailUsername = this.data.email ? this.data.email.replace(/@smail\.com$/i, '') : '';
+
+    // password fields to be empty
+    this.currentPassword = '';
+    this.newPassword = '';
+    this.confirmPassword = '';
+
     this.checkEmailChangeStatus();
   }
 
@@ -262,6 +282,7 @@ export class UserProfileDialog {
 
   // save profile
   save(): void {
+    // console.log('save', 1)
     const currentUser = this.mailService.getCurrentUser();
 
     if (!currentUser) {
@@ -316,10 +337,10 @@ export class UserProfileDialog {
     const newEmail = `${username}@smail.com`;
     const emailChanged = newEmail.toLowerCase() !== this.originalEmail.toLowerCase();
 
+    // email change validation
     if (emailChanged) {
 
-      // User changed email without clicking
-      // Change Email
+      // edit email
       if (!this.emailEditing) {
         this.snackBar.open('Click "Change Email" before changing your email.', 'Close', {
           duration: 3000
@@ -339,6 +360,73 @@ export class UserProfileDialog {
       }
     }
 
+    // password change
+    const passwordChangeRequested = 
+      this.currentPassword.trim() !== '' ||
+      this.newPassword.trim() !== '' ||
+      this.confirmPassword.trim() !== '';
+
+      this.passwordSubmitted = passwordChangeRequested;
+
+    if (passwordChangeRequested) {
+      // this.passwordSubmitted = true;
+
+      if (!this.currentPassword) {
+        this.snackBar.open('Current password is required', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
+
+      // check current user password
+      if (this.currentPassword !== currentUser.password) {
+        this.snackBar.open('Current password is incorrect', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
+
+      // new password
+      if (!this.newPassword) {
+        this.snackBar.open('New password is required', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
+
+      // new passwords validation
+      if (!this.isPasswordValid()) {
+        this.snackBar.open('Password must contain at least 6 characters, uppercase, lowercase, number and special character.', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
+
+      // new password should not be as old password
+      if (this.currentPassword === this.newPassword) {
+        this.snackBar.open('New password cannnot be same as old password', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
+
+      // confirm password
+      if (!this.confirmPassword) {
+        this.snackBar.open('Please confirm your new password', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
+
+      // new password should confirm password
+      if (this.newPassword !== this.confirmPassword) {
+        this.snackBar.open('Passwords do no match', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
+    }
+
     // create updated user
     const nameParts = this.data.name.trim().split(/\s+/);
     const fname = nameParts[0] || currentUser.fname;
@@ -352,112 +440,34 @@ export class UserProfileDialog {
       phone: this.data.phone,
       email: newEmail,
       profileImage: this.data.profileImage ?? null
+    };
+
+    // add new password
+    if (passwordChangeRequested) {
+      updatedData.password = this.newPassword;
     }
 
-    //  email changed successfully
-    // if (emailChanged) {
-    //   updatedData.emailLastChangedAt = new Date().toISOString();
-    //   updatedData.emailChangeStartedAt = null;
-    //   updatedData.emailChangeExpiresAt = null;
-    // }
-
-    // // update to db.json
-    // this.mailService.updateUser(currentUser.id!, updatedData).subscribe({
-    //   next: (updatedUser) => {
-
-    //     // Update service current user
-    //     this.mailService.currentUser = updatedUser;
-
-    //     // Update localStorage
-    //     localStorage.setItem('smailCurrentUser', JSON.stringify(updatedUser));
-
-    //     // Stop email timer
-    //     this.stopTimer();
-
-    //     // reset email
-    //     this.emailEditing = false;
-
-    //     // updates original email
-    //     this.originalEmail = updatedUser.email;
-
-    //     // Update local dialog data
-    //     this.data.name = `${updatedUser.fname} ${updatedUser.lname}`.trim();
-    //     this.data.dob = updatedUser.dob;
-    //     this.data.gender = updatedUser.gender;
-    //     this.data.phone = updatedUser.phone;
-    //     this.data.email = updatedUser.email;
-    //     this.data.profileImage = updatedUser.profileImage ?? null;
-    //     this.data.emailLastChangedAt = updatedUser.emailLastChangedAt;
-    //     this.data.emailChangeStartedAt = updatedUser.emailChangeStartedAt;
-    //     this.data.emailChangeExpiresAt = updatedUser.emailChangeExpiresAt;
-
-    //     this.checkEmailChangeStatus();
-
-    //     this.snackBar.open('Profile updated successfully', 'Close', {
-    //       duration: 3000
-    //     });
-
-    //     // Return updated user to Inbox
-    //     this.dialogRef.close(updatedUser);
-    //   },
-    //   error: (error) => {
-    //     console.error('Unable to update profile:', error);
-    //     this.snackBar.open('Unable to update profile.', 'Close',
-    //       {
-    //         duration: 3000
-    //       }
-    //     );
-    //   }
+    // email changed successfully
     if (emailChanged) {
       const oldEmail = currentUser.email;
       const existingAliases = currentUser.emailAliases || [];
       const aliases = [...existingAliases];
 
-      if (oldEmail && oldEmail.toLowerCase() !== newEmail.toLowerCase() && !aliases.some(
-        alias => alias.toLowerCase() === oldEmail.toLowerCase())) {
+      if (oldEmail && oldEmail.toLowerCase() !== newEmail.toLowerCase() &&
+        !aliases.some((alias: string) => alias.toLowerCase() === oldEmail.toLowerCase())) {
 
         aliases.push(oldEmail);
       }
 
       updatedData.emailAliases = aliases;
       updatedData.emailChangeStartedAt = null;
-      updatedData.emaiLastChangedAt = new Date().toISOString();
+      updatedData.emailChangeStartedAt = null;
+      updatedData.emailLastChangedAt = new Date().toISOString();
 
       this.mailService.updateUserEmail(currentUser, updatedData).subscribe({
         next: (updatedUser) => {
-
-          // Update service
-          this.mailService.currentUser = updatedUser;
-
-          // Update localStorage
-          localStorage.setItem('smailCurrentUser', JSON.stringify(updatedUser));
-
-          this.stopTimer();
-
-          this.emailEditing = false;
-          this.canChangeEmail = false;
-
-          this.originalEmail = updatedUser.email;
-
-          // Update dialog data
-          this.data.name = `${updatedUser.fname} ${updatedUser.lname}`.trim();
-          this.data.dob = updatedUser.dob;
-          this.data.gender = updatedUser.gender;
-          this.data.phone = updatedUser.phone;
-          this.data.email = updatedUser.email;
-          this.data.profileImage = updatedUser.profileImage ?? null;
-          this.data.emailAliases = updatedUser.emailAliases ?? [];
-          this.data.emailLastChangedAt = updatedUser.emailLastChangedAt;
-          this.data.emailChangeStartedAt = null;
-          this.data.emailChangeExpiresAt = null;
-          this.snackBar.open(emailChanged ? 'Email updated successfully' : 'Profile updated succesfully',
-            'Close', {
-            duration: 3000
-          });
-
-          this.dialogRef.close(updatedUser);
+          this.handleSuccessfulSave(updatedUser);
         },
-
         error: (error) => {
           console.error('Unable to update email:', error);
           this.snackBar.open('Unable to update email.', 'Close', {
@@ -467,8 +477,66 @@ export class UserProfileDialog {
       });
       return;
     }
+
+    // save button
+    this.mailService.updateUser(currentUser.id!, updatedData).subscribe({
+      next: (updatedUser) => {
+        this.handleSuccessfulSave(updatedUser);
+      },
+      error: (error) => {
+        console.error('Unable to update profile', error);
+        this.snackBar.open('unable to update profile', 'Close', {
+          duration: 3000
+        });
+      }
+    });
   };
 
+  // Handles all the fields by saving it 
+  private handleSuccessfulSave(updatedUser: any): void {
+    // Update service
+    this.mailService.currentUser = updatedUser;
+
+    localStorage.setItem('smailCurrentUser', JSON.stringify(updatedUser));
+
+    this.data.name = `${updatedUser.fname} ${updatedUser.lname}`.trim();
+    this.data.dob = this.formatDobForInput(updatedUser.dob);
+    this.data.gender = updatedUser.gender;
+    this.data.phone = updatedUser.phone;
+    this.data.email = updatedUser.email;
+    this.data.profileImage = updatedUser.profileImage ?? null;
+    this.data.emailAliases = updatedUser.emailAliases ?? [];
+    this.data.emailLastChangedAt = updatedUser.emailLastChangedAt;
+    this.data.emailChangeStartedAt = updatedUser.emailChangeStartedAt;
+    this.data.emailChangeExpiresAt = updatedUser.emailChangeExpiresAt;
+    this.emailUsername = updatedUser.email ? updatedUser.email.replace(/@smail\.com$/i, '') : '';
+
+    this.originalEmail = updatedUser.email;
+    this.emailEditing = false;
+
+    this.stopTimer();
+
+    this.currentPassword = '';
+    this.newPassword = '';
+    this.confirmPassword = '';
+
+    this.passwordSubmitted = false;
+    this.snackBar.open('Profile updated successfully', 'Close', {
+      duration: 3000
+    });
+
+    this.dialogRef.close(updatedUser);
+  }
+
+  // password validation
+  isPasswordValid(): boolean {
+    if (!this.newPassword) {
+      return false;
+    }
+
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$/;
+    return (this.newPassword.length >= 6 && passwordPattern.test(this.newPassword));
+  }
 
   ngOnDestroy(): void {
     this.stopTimer();
