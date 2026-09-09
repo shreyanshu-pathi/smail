@@ -95,7 +95,8 @@
                 <mat-icon>settings</mat-icon>
             </button>
 
-            <button mat-icon-button class="profile-btn" matTooltip="User Profile" (click)="openProfileModal()">
+            <button mat-icon-button class="profile-btn" matTooltip="User Profile"
+                (click)="openProfileModal(); $event.stopPropagation()">
                 <mat-icon>account_circle</mat-icon>
             </button>
 
@@ -748,57 +749,59 @@
                             </p>
 
                             <!-- Attachment -->
-                            @if (message.attachment) {
-                            <div class="mail-attachment">
+                            @if (message.attachments && message.attachments.length > 0) {
+                            <div class="mail-attachments">
+                                @for (attachment of message.attachments; track attachment.name + $index) {
+                                <div class="mail-attachment">
 
-                                <!-- Image preview -->
-                                @if(message.attachment.type.startsWith('image/')){
-                                <div class="attachment-preview">
-                                    <img [src]="message.attachment.data" [alt]="message.attachment.name"
-                                        class="attachment-image">
-                                </div>
-                                }
+                                    <!-- Image preview -->
+                                    @if(attachment.type.startsWith('image/')){
+                                    <div class="attachment-preview">
+                                        <img [src]="attachment.data" [alt]="attachment.name" class="attachment-image">
+                                    </div>
+                                    }
 
-                                <!-- Attachment informaiton -->
-                                <div class="attachment-info">
+                                    <!-- Attachment informaiton -->
+                                    <div class="attachment-info">
 
-                                    <div class="attachment-details">
-                                        <span class="attachment-name">{{message.attachment.name}}</span>
-                                        <span class="attachment-type">{{message.attachment.type}}</span>
+                                        <div class="attachment-details">
+                                            <span class="attachment-name">{{attachment.name}}</span>
+                                            <span class="attachment-type">{{attachment.type}}</span>
+                                        </div>
                                     </div>
                                 </div>
+                                }
                             </div>
                             }
                         </div>
 
+
+
+                        <!-- Reply / Forward -->
+                        @if (conversation.length > 0) {
+
+                        <div class="mail-actions">
+
+                            <button mat-stroked-button
+                                (click)="replyMail(conversation[conversation.length - 1]); $event.stopPropagation()">
+                                <mat-icon>reply</mat-icon>
+                                Reply
+                            </button>
+
+                            <button mat-stroked-button (click)="forwardMail(); $event.stopPropagation()">
+                                <mat-icon> forward </mat-icon>
+                                Forward
+                            </button>
+
+                        </div>
+
+                        }
+
                     </div>
-
                     }
-
-                    <!-- Reply / Forward -->
-                    @if (conversation.length > 0) {
-
-                    <div class="mail-actions">
-
-                        <button mat-stroked-button
-                            (click)="replyMail(conversation[conversation.length - 1]); $event.stopPropagation()">
-                            <mat-icon>reply</mat-icon>
-                            Reply
-                        </button>
-
-                        <button mat-stroked-button (click)="forwardMail(); $event.stopPropagation()">
-                            <mat-icon> forward </mat-icon>
-                            Forward
-                        </button>
-
-                    </div>
-
-                    }
-
                 </div>
 
             </div>
-
             }
         </main>
 

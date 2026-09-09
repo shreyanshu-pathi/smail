@@ -1665,7 +1665,7 @@ export class Inbox {
           : `Fwd: ${mailToForward.subject || '(no subject)'}`,
         body: forwardedBody,
         threadId: undefined,
-        attachment: mailToForward.attachment ? { ...mailToForward.attachment } : undefined
+        attachment: mailToForward.attachments ? { ...mailToForward.attachments } : undefined
       }
     });
 
@@ -1763,7 +1763,7 @@ export class Inbox {
         starred: draft.starred === true,
         spam: draft.spam === true,
         archived: draft.archived === true,
-        attachment: draft.attachment
+        attachment: draft.attachments
       }
     });
 

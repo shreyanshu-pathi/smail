@@ -38,11 +38,11 @@ export interface Mail {
     threadId?: string;
     replyToId?: number;
 
-    attachment?: {
+    attachments?: {
         name:string,
         type: string,
         data: string
-    };
+    }[];
 
     promotion?: boolean;
     social?: boolean;

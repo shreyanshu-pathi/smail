@@ -29,17 +29,36 @@
         </mat-form-field>
 
         <!-- To -->
-        <mat-form-field appearance="outline" class="full-width">
-            <mat-label>To</mat-label>
-            <input matInput formControlName="to" placeholder="Recipients email" [readonly]="data.mode === 'reply'">
+        <div class="recipient-field">
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>To</mat-label>
+                <input matInput formControlName="to" placeholder="Recipients email" [readonly]="data.mode === 'reply'"
+                    (input)="onToInput($event)" autocomplete="off">
 
-            @if(composeForm.controls['to'].hasError('required') && composeForm.controls['to'].touched){
-            <mat-error>Recipient email is required</mat-error>
-            }
-            @if(composeForm.controls['to'].hasError('invalidEmail')&& composeForm.controls['to'].touched){
-            <mat-error>Invalid email address</mat-error>
-            }
-        </mat-form-field>
+                @if(showSuggestions && filteredUsers.length > 0) {
+                <div class="recipient-suggestions">
+                    @for (user of filteredUsers; track user.email) {
+                    <div class="recipient-suggestion" (mousedown)="selectRecipient(user)">
+                        <div class="recipient-name">
+                            {{ user.fname }} {{ user.lname }}
+                        </div>
+
+                        <div class="recipient-smail">
+                            {{ user.email }}
+                        </div>
+                    </div>
+                    }
+                </div>
+                }
+
+                @if(composeForm.controls['to'].hasError('required') && composeForm.controls['to'].touched) {
+                <mat-error>Recipient email is required</mat-error>
+                }
+                @if(composeForm.controls['to'].hasError('invalidEmail') && composeForm.controls['to'].touched) {
+                <mat-error>Invalid email address</mat-error>
+                }
+            </mat-form-field>
+        </div>
 
         <!-- subject -->
         <mat-form-field appearance="outline" class="full-width">
@@ -60,14 +79,18 @@
             }
 
             <!-- Attachment -->
-            @if(attachmentName){
-            <div class="attachment">
-                <mat-icon>attach_file</mat-icon>
-                <span>{{attachmentName}}</span>
+            @if(attachments.length > 0){
+            <div class="attachments">
+                @for(attachment of attachments; track $index){
+                <div class="attachment">
+                    <mat-icon>attach_file</mat-icon>
+                    <span>{{attachment.name}}</span>
 
-                <button mat-icon-button type="button" matTooltip="Remove" (click)="removeAttachment()">
-                    <mat-icon>close</mat-icon>
-                </button>
+                    <button mat-icon-button type="button" matTooltip="Remove" (click)="removeAttachment($index)">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </div>
+                }
             </div>
             }
         </mat-form-field>
@@ -78,7 +101,7 @@
 
             <div class="compose-footer-right">
 
-                <input #fileInput type="file" hidden (change)="onFileSelected($event)">
+                <input #fileInput type="file" hidden multiple (change)="onFileSelected($event)">
                 <button mat-icon-button type="button" matTooltip="Files" (click)="fileInput.click()">
                     <mat-icon>attach_file</mat-icon>
                 </button>

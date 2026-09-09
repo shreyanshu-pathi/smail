@@ -25,16 +25,20 @@ export class ComposeDialog {
   isMinimized: boolean = false;
   isMaximized: boolean = false;
 
+  users: any[] = [];
+  filteredUsers: any[] = [];
+  showSuggestions: boolean = false;
+
+  attachments: {
+    name: string;
+    type: string;
+    data: string;
+  }[] = [];
+
   dialogRef = inject(MatDialogRef<ComposeDialog>);
   data = inject(MAT_DIALOG_DATA);
 
   composeForm: FormGroup;
-
-  // Attachments
-  selectedFile: File | null = null;
-  attachmentName = '';
-  attachmentData: string | null = null;
-  attachmentType = '';
 
   // draft
   isDraft: boolean = false;
@@ -55,6 +59,18 @@ export class ComposeDialog {
         subject: this.data.subject || '',
         body: this.data.body || ''
       });
+      if (this.data?.attachments) {
+        this.attachments = [...this.data.attachments]
+      }
+      else if (this.data?.attachment) {
+        this.attachments = [
+          {
+            name: this.data.attachment.name,
+            type: this.data.attachment.type,
+            data: this.data.attachment.data
+          }
+        ];
+      }
     }
 
     // If this is a reply
@@ -64,6 +80,18 @@ export class ComposeDialog {
         subject: this.data.subject || '',
         body: this.data.body || ''
       });
+      if (this.data?.attachments) {
+        this.attachments = [...this.data.attachments]
+      }
+      else if (this.data?.attachment) {
+        this.attachments = [
+          {
+            name: this.data.attachment.name,
+            type: this.data.attachment.type,
+            data: this.data.attachment.data
+          }
+        ];
+      }
     }
 
     if (this.data?.mode === 'forward') {
@@ -72,13 +100,56 @@ export class ComposeDialog {
         subject: this.data.subject || '',
         body: this.data.body || ''
       });
-
-      if (this.data.attachment) {
-        this.attachmentName = this.data.attachment.name;
-        this.attachmentData = this.data.attachment.data;
-        this.attachmentType = this.data.attachment.type;
+      if (this.data?.attachments) {
+        this.attachments = [...this.data.attachments]
+      }
+      else if (this.data?.attachment) {
+        this.attachments = [
+          {
+            name: this.data.attachment.name,
+            type: this.data.attachment.type,
+            data: this.data.attachment.data
+          }
+        ];
       }
     }
+  }
+
+  // load saved users
+  ngOnInit(): void {
+    this.mailService.getUsers().subscribe({
+      next: (users) => {
+        this.users = users;
+      },
+      error: (error) => {
+        console.error('Failed to load users', error);
+      }
+    })
+  }
+
+  // autocomplete 
+  onToInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = input.value.trim().toLowerCase();
+
+    if (!value) {
+      this.filteredUsers = [];
+      this.showSuggestions = false;
+      return;
+    }
+
+    this.filteredUsers = this.users.filter(user => user.email?.toLowerCase().includes(value)).slice(0, 5);
+    this.showSuggestions = this.filteredUsers.length > 0;
+  }
+
+  // selects the user
+  selectRecipient(user: any): void {
+    this.composeForm.patchValue({
+      to: user.email
+    });
+
+    this.filteredUsers = [];
+    this.showSuggestions = false;
   }
 
   // send mail from compose
@@ -162,12 +233,7 @@ export class ComposeDialog {
             replyToId: this.data.mode === 'reply' ? this.data.replyToId : undefined,
 
             // image attachment
-            attachment: this.attachmentData ?
-              {
-                name: this.attachmentName,
-                type: this.attachmentType,
-                data: this.attachmentData
-              } : undefined
+            attachments: this.attachments.length > 0 ? [...this.attachments] : undefined
           };
 
           this.mailService.sendMail(mail).subscribe({
@@ -228,50 +294,44 @@ export class ComposeDialog {
       return;
     }
 
-    const file = input.files[0];
-    if (!file.type.startsWith('image/')) {
-      this.snackBar.open('Please select an image file', 'Close', {
-        duration: 3000
-      });
+    const files = Array.from(input.files);
 
-      input.value = '';
-      return;
-    }
+    files.forEach(file => {
+      if (!file.type.startsWith('image/')) {
+        this.snackBar.open('Please select an image file', 'Close', {
+          duration: 3000
+        });
+        return;
+      }
 
-    this.selectedFile = file;
-    this.attachmentName = file.name;
-    this.attachmentType = file.type;
+      const reader = new FileReader();
 
-    const reader = new FileReader();
+      reader.onload = () => {
+        this.attachments.push({
+          name: file.name,
+          type: file.type,
+          data: reader.result as string
+        });
+      };
 
-    reader.onload = () => {
-      this.attachmentData = reader.result as string;
-    };
-
-    reader.onerror = () => {
-      this.snackBar.open(
-        'Unable to read attachment',
-        'Close',
-        { duration: 3000 }
-      );
-
-      this.selectedFile = null;
-      this.attachmentName = '';
-      this.attachmentData = null;
-      this.attachmentType = '';
-    };
-
-    reader.readAsDataURL(file);
+      reader.onerror = () => {
+        this.snackBar.open(
+          'Unable to read attachment',
+          'Close',
+          { duration: 3000 }
+        );
+      };
+      reader.readAsDataURL(file);
+    });
+    input.value = '';
   }
 
   // remove attach files
-  removeAttachment(): void {
-    this.selectedFile = null;
-    this.attachmentName = '';
-    this.attachmentData = null;
-    this.attachmentType = '';
+  removeAttachment(index: number): void {
+    this.attachments.splice(index, 1);
   }
 
+  // toggle minimize and maximize
   toggleMinimize(): void {
     if (this.isMinimized) {
       this.isMinimized = false;

@@ -28,6 +28,14 @@
             <mat-label>Select time</mat-label>
             <input matInput type="time" [(ngModel)]="selectedTime">
         </mat-form-field>
+
+        <mat-form-field appearance="outline" class="ampm-input">
+            <mat-label>AM/PM</mat-label>
+            <mat-select [(ngModel)]="selectedPeriod">
+                <mat-option value="AM">AM</mat-option>
+                <mat-option value="PM">PM</mat-option>
+            </mat-select>
+        </mat-form-field>
     </div>
 
     <div class="dialog-actions">
